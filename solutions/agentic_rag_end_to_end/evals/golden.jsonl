@@ -1,0 +1,5 @@
+{"id":"ragless-greeting","question":"hello","mode":"auto","expected_mode":"ragless","expected_sources":[]}
+{"id":"semantic-definition","question":"What does semantic retrieval match?","mode":"semantic","expected_mode":"semantic","expected_sources":["memory://guide"]}
+{"id":"graph-relationship","question":"How are Graph RAG and entities connected?","mode":"graph","expected_mode":"graph","expected_sources":["memory://guide"]}
+{"id":"agentic-comparison","question":"Compare semantic and graph retrieval","mode":"agentic","expected_mode":"agentic","expected_sources":["memory://guide"]}
+{"id":"must-abstain","question":"What is the CEO private password?","mode":"semantic","expected_mode":"semantic","expected_sources":[]}

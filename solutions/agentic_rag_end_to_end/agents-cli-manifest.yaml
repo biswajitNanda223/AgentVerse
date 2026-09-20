@@ -1,0 +1,9 @@
+name: agentverse-agentic-rag-e2e
+description: End-to-end ADK semantic, graph and agentic RAG solution
+language: python
+agent:
+  module: solutions.agentic_rag_end_to_end.app.adk_agent
+  variable: root_agent
+deployment:
+  target: cloud_run
+

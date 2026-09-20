@@ -45,6 +45,8 @@ sequenceDiagram
 - `agents` maps deterministic capabilities into ADK tools and workflow agents.
 - `api` translates HTTP into application commands. It does not contain retrieval logic.
 - `protocols` exposes small adapter processes. MCP and A2A are not hidden inside the API.
+- `solutions/agentic_rag_end_to_end` assembles those boundaries into one runnable vertical
+  slice while keeping protocol processes independently deployable.
 
 ## State and side effects
 
@@ -53,4 +55,3 @@ PostgreSQL for business records/idempotency, object storage for full tool artifa
 vector/lexical index for derived retrieval data. Before a resumable workflow performs an
 external write, persist the intended operation and an idempotency key. On replay, return the
 recorded result instead of repeating the side effect.
-

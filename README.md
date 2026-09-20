@@ -88,6 +88,13 @@ The complete examples are under [`examples/rag`](examples/rag) and
 These are executable local references, not claims that one strategy fits every corpus. Choose
 with the decision matrix in the RAG handbook, then prove the choice using retrieval evals.
 
+## Complete one-shot solution
+
+For a single deployable flow containing RAG-less routing, semantic/hybrid RAG, GraphRAG,
+agentic multi-source RAG, an ADK agent, MCP tools, A2A client/server, API, security controls,
+Docker, Kubernetes, scaling guidance and prompt-to-user diagrams, use the
+[Agentic RAG end-to-end solution](solutions/agentic_rag_end_to_end/README.md).
+
 ## Repository map
 
 ```text

@@ -17,7 +17,7 @@ jobs:
       - run: uv sync --extra dev
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run pytest --cov=agentverse --cov-report=xml
+      - run: uv run pytest tests solutions/agentic_rag_end_to_end/tests --cov=agentverse --cov=solutions.agentic_rag_end_to_end.app --cov-report=xml
   container:
     runs-on: ubuntu-latest
     needs: test
@@ -30,4 +30,3 @@ jobs:
           file: deploy/Dockerfile
           push: false
           tags: agentverse:${{ github.sha }}
-

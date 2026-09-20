@@ -1,0 +1,25 @@
+name: agentverse-agentic-rag-e2e
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: solutions/agentic_rag_end_to_end/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    ports: ["8000:8000"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+  a2a-peer:
+    build:
+      context: ../..
+      dockerfile: solutions/agentic_rag_end_to_end/Dockerfile
+    env_file:
+      - path: .env
+        required: false
+    entrypoint: ["uvicorn", "solutions.agentic_rag_end_to_end.app.a2a_server:app", "--host", "0.0.0.0", "--port", "8001"]
+    ports: ["8001:8001"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]

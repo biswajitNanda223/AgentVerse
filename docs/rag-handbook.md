@@ -54,10 +54,35 @@ flowchart TB
 | Semantic | topic shifts inside long sections | embedding breakpoint threshold | ingestion must be very cheap |
 | Parent-child | answers need surrounding clauses | 150-token child, 800-token parent | corpus is already short |
 | Contextual/late | isolated chunks are ambiguous | add title/section summary | context generation cost is unjustified |
+| Code/table | syntax or row/column structure must remain valid | AST definitions / header + row groups | treating source as prose |
+| HTML/PDF layout | DOM blocks, pages and coordinates carry meaning | semantic blocks and parser elements | flattening reading order is acceptable |
+| Proposition | high-precision atomic facts | evaluated proposition decomposer | narrative context is required |
 
 Treat these as hypotheses. Tune chunk size, overlap, `k`, fusion and reranking using a
 versioned query set with expected evidence, not intuition. Record recall@k, MRR/nDCG,
 faithfulness, citation precision, answer completeness, p50/p95 latency and cost per answer.
+
+## Implementation map
+
+| Family | Implementation | Runnable example |
+|---|---|---|
+| Naive lexical | `rag/retrieval.py` | `examples/rag/01_naive` |
+| Dense, hybrid, reranked | `rag/strategies.py` | `examples/rag/02_dense`–`04_reranked` |
+| Parent-child | `advanced_chunking.py`, `ParentDocumentRetriever` | `examples/rag/05_parent_child` |
+| Multi-query and HyDE | `MultiQueryRetriever`, `HyDERetriever` | `examples/rag/06_multi_query`, `07_hyde` |
+| Corrective RAG | `rag/pipeline.py` | `examples/rag/08_crag` |
+| Self/adaptive RAG | `SelfRag`, `AdaptiveRag` | `examples/rag/09_self_adaptive` |
+| Federated/agentic | `FederatedRetriever`, `AgenticRag` | `examples/rag/10_agentic_federated` |
+| Graph | `GraphRetriever` | `examples/rag/11_graph` |
+| Multimodal | `MultimodalRetriever` | `examples/rag/12_multimodal` |
+| Conversational | `ConversationalRetriever` | `examples/rag/13_conversational` |
+| SQL and temporal | `SqlRag`, `TemporalRetriever` | `examples/rag/14_sql_temporal` |
+
+Graph and multimodal examples are intentionally small: production GraphRAG additionally needs
+entity resolution, community detection/summaries and graph refresh evaluation; production
+multimodal RAG needs modality-specific encoders, page/region coordinates and artifact storage.
+The interfaces demonstrate the flow without pretending that an in-memory example is a managed
+index.
 
 ## OCR
 
@@ -74,4 +99,3 @@ local Tesseract boundary; managed OCR/document-AI systems can implement the same
 3. Optimize retrieval recall first, reranker precision second, answer faithfulness third.
 4. Slice metrics by source, language, OCR confidence, document age and question type.
 5. Add every production failure to the regression set after redaction and approval.
-

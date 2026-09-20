@@ -73,6 +73,21 @@ docker compose -f deploy/docker-compose.yml up --build
 5. [Deployment runbook](docs/deployment.md)
 6. [Attachment-derived requirements](references/ATTACHMENT_NOTES.md)
 
+## Runnable strategy catalog
+
+The complete examples are under [`examples/rag`](examples/rag) and
+[`examples/chunking`](examples/chunking). They cover:
+
+- RAG: naive lexical, dense, hybrid, reranked, parent-child, multi-query, HyDE, CRAG,
+  Self-RAG, adaptive, federated, agentic multi-hop, graph, multimodal, conversational,
+  SQL/structured and temporal retrieval.
+- Chunking: fixed, sentence, paragraph, recursive, semantic, Markdown/document-aware,
+  parent-child, contextual, late, Python-code and CSV-table chunking.
+  HTML blocks, PDF/OCR layout elements and proposition chunking are also included.
+
+These are executable local references, not claims that one strategy fits every corpus. Choose
+with the decision matrix in the RAG handbook, then prove the choice using retrieval evals.
+
 ## Repository map
 
 ```text
@@ -86,6 +101,7 @@ tests/          unit, API and architecture tests
 docs/           conceptual guides and Mermaid diagrams
 deploy/         container, Compose and Kubernetes resources
 evals/          golden retrieval and agent behavior datasets
+examples/       one independently runnable example per strategy family
 ```
 
 The examples use safe local defaults for teaching. The production checklist identifies
@@ -103,4 +119,3 @@ uv run pytest --cov=agentverse
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
-

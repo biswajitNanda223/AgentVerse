@@ -21,6 +21,19 @@ flowchart LR
 ADK tools should be narrow Python functions with precise docstrings, typed parameters,
 timeouts and structured results. Keep deterministic transformations outside the model.
 
+## Reliability controls implemented in this repository
+
+`agents/reliability.py` provides framework-neutral controls to wrap ADK tool calls:
+
+- scope and human-approval policy for consequential tools;
+- tenant-namespaced idempotency with argument-drift detection;
+- monotonic checkpoints for safe resume;
+- tool-result compaction that preserves a full payload reference and hash;
+- safe parallel grouping based on output ownership and side effects.
+
+`agents/guardrails.py` adds deterministic untrusted-content screening and citation-boundary
+validation. These controls complement model safety checks; they are not delegated to the model.
+
 ## MCP versus A2A
 
 | Concern | MCP | A2A |
@@ -52,4 +65,3 @@ agents-cli deploy --status
 Agents CLI also supports trace generation/grading, dataset synthesis and experimental prompt
 optimization. Treat optimization output as a proposed code change: review it, run safety and
 quality evals, canary it, and retain rollback metadata.
-

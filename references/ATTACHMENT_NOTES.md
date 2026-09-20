@@ -15,6 +15,9 @@ were reviewed on 2026-09-20 and led to these explicit requirements:
 | Network sandboxing without provenance is insufficient | Request/tenant/agent/tool lineage is part of the telemetry and citation model. |
 | RAG flow: ingest, index, retrieve, augment, generate | Implemented as separate interfaces so every stage can be tested and replaced. |
 
+The expanded implementation directly encodes each observation: query-aware CRAG grading,
+monotonic checkpoints, tenant-scoped idempotency, single-writer parallel grouping, payload
+compaction with an external artifact reference, approval policies and provenance-bearing chunks.
+
 Raw screenshots are intentionally ignored by Git to avoid republishing social-media and
 third-party visual content. Keep the original archive outside the repository.
-

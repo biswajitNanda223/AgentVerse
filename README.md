@@ -26,6 +26,7 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Build a security-first agent with rollback, memory and evals | [Production AI security solution](solutions/production_ai_security/README.md) |
 | Use ADK, MCP, A2A and Agents CLI | [Agents and protocols](docs/agents-and-protocols.md) |
 | Deploy with containers or Kubernetes | [Deployment runbook](docs/deployment.md) |
 | Browse all documentation | [Documentation index](docs/README.md) |
@@ -45,6 +46,8 @@ together.
   health probes, validation and structured errors.
 - **Production controls:** checkpointing, idempotency, human-approval policy, prompt-injection
   screening, citation verification, provenance, context compaction and failure-specific recovery.
+- **AI security reference:** origin-bound tools, rollback-first consent, tenant-safe memory/cache,
+  adversarial and trajectory evaluations, threat modeling and incident operations.
 - **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
   Kubernetes security contexts, HPA and PodDisruptionBudget.
 
@@ -146,7 +149,8 @@ AgentVerse/
 │   ├── protocols/       standalone MCP and A2A adapters
 │   └── rag/             chunking, retrieval, OCR and RAG strategies
 ├── solutions/
-│   └── agentic_rag_end_to_end/  complete prompt-to-user vertical solution
+│   ├── agentic_rag_end_to_end/  complete prompt-to-user vertical solution
+│   └── production_ai_security/  security-first agent, memory, cache, evals and runbooks
 ├── examples/
 │   ├── rag/             independently runnable RAG patterns
 │   ├── chunking/        independently runnable chunking patterns

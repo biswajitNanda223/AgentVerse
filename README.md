@@ -1,129 +1,195 @@
 # AgentVerse
 
-AgentVerse is an end-to-end, production-oriented learning monorepo for building fast,
-accurate and secure generative-AI systems with **Google ADK (Python)**. It keeps the
-examples separate: the REST API, RAG/OCR pipeline, MCP server and A2A agent can each run
-alone, while sharing configuration, security, telemetry and evaluation patterns.
+Production-oriented Python monorepo for building, evaluating and deploying generative-AI and
+agentic systems with Google Agent Development Kit (ADK).
 
-> Current reference baseline (September 2026): Python 3.11-3.13, Google ADK 2.9.2,
-> A2A SDK 1.1.4 and MCP 2.2.0. Pinning is deliberate; upgrade with tests and evals.
+[![CI](https://github.com/biswajitNanda223/AgentVerse/actions/workflows/ci.yml/badge.svg)](https://github.com/biswajitNanda223/AgentVerse/actions/workflows/ci.yml)
+[![Python](https://img.shields.io/badge/Python-3.11--3.13-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![ADK](https://img.shields.io/badge/Google_ADK-2.9.2-4285F4)](https://google.github.io/adk-docs/)
+[![License](https://img.shields.io/badge/License-Apache--2.0-green.svg)](LICENSE)
 
-## What is included
+AgentVerse connects the complete path from user prompt to grounded response: authenticated API,
+ADK orchestration, RAG-less routing, semantic/hybrid/GraphRAG/agentic retrieval, OCR, MCP tools,
+A2A delegation, citation validation, OpenTelemetry, evaluation and deployment. Small examples
+remain independently runnable, while a separate vertical solution shows how the parts fit
+together.
 
-- ADK agents: focused single agent, coordinator/sub-agent workflow, guarded tools,
-  durable session guidance and an `agents-cli` lifecycle.
-- RAG: naive, hybrid, reranked, parent-child, multi-query, HyDE, contextual, corrective
-  (CRAG), self/agentic, graph and multimodal design examples.
-- Chunking: fixed token-window, sentence/paragraph, recursive, semantic, document-aware,
-  parent-child and late/contextual chunking trade-offs plus executable strategies.
-- OCR: image/PDF ingestion with validation, provenance and a pluggable extraction boundary.
-- Protocols: MCP for agent-to-tool/data integration; A2A for agent-to-agent discovery and
-  delegation. They solve different problems and are demonstrated separately.
-- Backend: versioned FastAPI endpoints, request IDs, API-key boundary, size limits,
-  health/readiness, idempotency and structured errors.
-- Production: OpenTelemetry traces/metrics/log correlation, Docker, Kubernetes, network
-  policy, HPA, PodDisruptionBudget, CI, threat model and evaluation gates.
+> Reference baseline: Python 3.11–3.13, Google ADK 2.9.2, A2A SDK 1.1.4 and MCP 2.2.0.
+> Dependencies are pinned deliberately; upgrade only with tests, evaluations and a canary.
+
+## Start here
+
+| Goal | Entry point |
+|---|---|
+| Run the complete prompt-to-user system | [Agentic RAG end-to-end solution](solutions/agentic_rag_end_to_end/README.md) |
+| Learn every RAG strategy | [RAG examples](examples/rag/README.md) |
+| Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
+| Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
+| Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Use ADK, MCP, A2A and Agents CLI | [Agents and protocols](docs/agents-and-protocols.md) |
+| Deploy with containers or Kubernetes | [Deployment runbook](docs/deployment.md) |
+| Browse all documentation | [Documentation index](docs/README.md) |
+
+## Capabilities
+
+- **Google ADK:** grounded root agents, narrow typed tools, Agents CLI lifecycle and guarded
+  orchestration.
+- **RAG:** naive lexical, dense semantic, hybrid, reranked, parent-child, multi-query, HyDE,
+  contextual, CRAG, Self-RAG, adaptive, federated, conversational, SQL, temporal, GraphRAG,
+  multimodal and bounded agentic multi-hop retrieval.
+- **Chunking:** fixed-window, sentence, paragraph, recursive, semantic, Markdown, HTML,
+  layout-aware PDF/OCR, parent-child, contextual, late, code, table and proposition strategies.
+- **Protocols:** standalone MCP 2.x tool servers and A2A discovery, client delegation and
+  `message/send` peer examples.
+- **Backend:** versioned FastAPI contracts, authentication, tenant isolation, request IDs,
+  health probes, validation and structured errors.
+- **Production controls:** checkpointing, idempotency, human-approval policy, prompt-injection
+  screening, citation verification, provenance, context compaction and failure-specific recovery.
+- **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
+  Kubernetes security contexts, HPA and PodDisruptionBudget.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
-  Client["Web / mobile / service"] -->|HTTPS + auth| API["FastAPI gateway"]
-  API --> Guard["Policy, limits, idempotency"]
-  Guard --> ADK["ADK coordinator"]
-  ADK --> Specialists["Specialist agents"]
-  ADK --> RAG["RAG service"]
-  RAG --> OCR["OCR / document parser"]
-  RAG --> Index[("Vector + lexical indexes")]
-  ADK --> MCP["MCP tool servers"]
-  ADK <-->|A2A tasks| Remote["Remote agents"]
-  API -. traces .-> OTel["OpenTelemetry collector"]
-  ADK -. traces/evals .-> OTel
-  RAG -. retrieval metrics .-> OTel
+  User["User / application"] -->|"HTTPS + identity"| API["FastAPI gateway"]
+  API --> Policy["Authorization, limits, routing"]
+  Policy --> ADK["ADK coordinator"]
+  ADK -->|"ordinary knowledge"| Semantic["Semantic + lexical RAG"]
+  ADK -->|"relationships"| Graph["GraphRAG"]
+  ADK -->|"multi-hop"| Agentic["Bounded agentic RAG"]
+  ADK -->|"simple request"| Ragless["RAG-less path"]
+  Semantic --> Evidence[("Tenant-filtered evidence")]
+  Graph --> Evidence
+  Agentic --> Evidence
+  Agentic --> MCP["MCP tools"]
+  Agentic <-->|"A2A tasks"| Peer["Remote agent"]
+  Evidence --> Guard["Injection + citation checks"]
+  MCP --> Guard
+  Peer --> Guard
+  Ragless --> Guard
+  Guard --> Answer["Grounded answer or abstention"]
+  API -.-> OTel["OpenTelemetry"]
+  ADK -.-> OTel
+  Evidence -.-> OTel
 ```
+
+The default orchestration rule is simple: parallelize independent reads, then give one component
+ownership of synthesis and every shared write. External side effects require approval,
+idempotency and a durable checkpoint.
 
 ## Quick start
 
+Prerequisites: Python 3.11–3.13 and [uv](https://docs.astral.sh/uv/).
+
 ```bash
+git clone https://github.com/biswajitNanda223/AgentVerse.git
+cd AgentVerse
 cp .env.example .env
 uv sync --extra dev
-uv run pytest
+uv run pytest tests solutions/agentic_rag_end_to_end/tests
 uv run uvicorn agentverse.api.app:create_app --factory --reload
 ```
 
-Open `http://localhost:8000/docs`. The deterministic local RAG endpoint works without a
-model key. To run ADK model calls, set `GOOGLE_API_KEY` or configure Vertex AI credentials.
+Open `http://localhost:8000/docs`. The local deterministic retrieval examples do not require a
+model key. Set `GOOGLE_API_KEY` or configure Vertex AI credentials for live ADK model calls.
+
+### Run the complete one-shot solution
 
 ```bash
-# ADK developer UI / CLI lifecycle
+uv run uvicorn solutions.agentic_rag_end_to_end.app.api:create_app --factory --reload
+```
+
+In another terminal:
+
+```bash
+curl -X POST http://localhost:8000/v1/documents \
+  -H "x-api-key: local-only" -H "x-tenant-id: demo" \
+  -H "content-type: application/json" \
+  -d '{"documents":[{"id":"guide","text":"Semantic RAG retrieves meaning. Graph RAG follows relationships.","source_uri":"memory://guide"}]}'
+
+curl -X POST http://localhost:8000/v1/ask \
+  -H "x-api-key: local-only" -H "x-tenant-id: demo" \
+  -H "content-type: application/json" \
+  -d '{"question":"Compare semantic and graph retrieval","mode":"agentic"}'
+```
+
+Windows PowerShell users can replace `cp` with `Copy-Item` and use `Invoke-RestMethod` instead
+of `curl` if `curl` is not installed.
+
+## RAG and chunking catalog
+
+| Area | Implemented families |
+|---|---|
+| Retrieval | lexical, dense, hybrid RRF, reranking, federated |
+| Query transformation | multi-query, HyDE, conversational condensation |
+| Corrective and adaptive | CRAG, Self-RAG, adaptive routing, RAG-less path |
+| Structured knowledge | SQL, temporal, GraphRAG |
+| Agentic and multimodal | bounded multi-hop, multi-source, image/OCR representation fusion |
+| Text chunking | fixed, sentence, paragraph, recursive, semantic |
+| Structure-aware chunking | Markdown, HTML, PDF/OCR layout, code, table, proposition |
+| Context strategies | parent-child, contextual and late chunking |
+
+Each example uses deterministic local adapters so it can run without cloud credentials. These
+adapters teach contracts and control flow; the production guide identifies the durable stores,
+identity, queues, models and policy services required for real traffic.
+
+## Repository structure
+
+```text
+AgentVerse/
+├── src/agentverse/
+│   ├── agents/          ADK agents, tools, guardrails and reliability controls
+│   ├── api/             standalone FastAPI integration
+│   ├── core/            settings, security, errors and telemetry
+│   ├── production/      failure recovery and provenance
+│   ├── protocols/       standalone MCP and A2A adapters
+│   └── rag/             chunking, retrieval, OCR and RAG strategies
+├── solutions/
+│   └── agentic_rag_end_to_end/  complete prompt-to-user vertical solution
+├── examples/
+│   ├── rag/             independently runnable RAG patterns
+│   ├── chunking/        independently runnable chunking patterns
+│   └── production_patterns/
+├── tests/               unit and API tests
+├── evals/               golden retrieval cases
+├── docs/                architecture and operational guides
+├── deploy/              Docker, Compose, OTel and Kubernetes assets
+└── references/          attachment review and traceability notes
+```
+
+## Quality and operations
+
+```bash
+# Static quality
+uv run ruff check .
+uv run ruff format --check .
+uv run mypy src/agentverse solutions/agentic_rag_end_to_end/app
+
+# Tests and coverage
+uv run pytest tests solutions/agentic_rag_end_to_end/tests \
+  --cov=agentverse --cov=solutions.agentic_rag_end_to_end.app
+
+# ADK lifecycle
 uvx google-agents-cli setup
 agents-cli playground
 agents-cli eval run
 
-# Entire local supporting stack
+# Supporting services
 docker compose -f deploy/docker-compose.yml up --build
 ```
 
-## Learning paths
+Before production, replace local in-memory adapters with durable tenant-aware stores, managed
+identity and secrets, queued ingestion, explicit network policy and an approved telemetry
+backend. Run retrieval, answer-quality, agent-trajectory, security and load gates before every
+release. See the [production guide](docs/production-guide.md) for the complete checklist.
 
-1. [Documentation index](docs/README.md)
-2. [Architecture and design](docs/architecture.md)
-3. [RAG and chunking handbook](docs/rag-handbook.md)
-4. [ADK agents, MCP, A2A and Agents CLI](docs/agents-and-protocols.md)
-5. [Performance, accuracy, security and observability](docs/production-guide.md)
-6. [Deployment runbook](docs/deployment.md)
-7. [Attachment engineering playbook](docs/attachment-engineering-playbook.md)
-8. [Attachment review notes](references/ATTACHMENT_NOTES.md)
+## Contributing and security
 
-## Runnable strategy catalog
-
-The complete examples are under [`examples/rag`](examples/rag) and
-[`examples/chunking`](examples/chunking). They cover:
-
-- RAG: naive lexical, dense, hybrid, reranked, parent-child, multi-query, HyDE, CRAG,
-  Self-RAG, adaptive, federated, agentic multi-hop, graph, multimodal, conversational,
-  SQL/structured and temporal retrieval.
-- Chunking: fixed, sentence, paragraph, recursive, semantic, Markdown/document-aware,
-  parent-child, contextual, late, Python-code and CSV-table chunking.
-  HTML blocks, PDF/OCR layout elements and proposition chunking are also included.
-
-These are executable local references, not claims that one strategy fits every corpus. Choose
-with the decision matrix in the RAG handbook, then prove the choice using retrieval evals.
-
-## Complete one-shot solution
-
-For a single deployable flow containing RAG-less routing, semantic/hybrid RAG, GraphRAG,
-agentic multi-source RAG, an ADK agent, MCP tools, A2A client/server, API, security controls,
-Docker, Kubernetes, scaling guidance and prompt-to-user diagrams, use the
-[Agentic RAG end-to-end solution](solutions/agentic_rag_end_to_end/README.md).
-
-## Repository map
-
-```text
-src/agentverse/
-  agents/       ADK definitions; coordinator and specialists
-  api/          standalone FastAPI integration
-  core/         config, errors, security, telemetry
-  rag/          ingestion, chunking, retrieval and CRAG orchestration
-  protocols/    standalone MCP and A2A examples
-tests/          unit, API and architecture tests
-docs/           conceptual guides and Mermaid diagrams
-deploy/         container, Compose and Kubernetes resources
-evals/          golden retrieval and agent behavior datasets
-examples/       one independently runnable example per strategy family
-```
-
-The examples use safe local defaults for teaching. The production checklist identifies
-the external managed components (identity, secret manager, durable queues, databases and
-telemetry backend) required before real traffic.
-
-## Quality commands
-
-```bash
-uv run ruff check .
-uv run ruff format --check .
-uv run pytest --cov=agentverse
-```
+Changes should include focused tests and update the relevant documentation in the same pull
+request. Do not put credentials, personal data or unrestricted prompt content in examples,
+fixtures or telemetry. Report vulnerabilities through GitHub security advisories as described
+in [SECURITY.md](SECURITY.md).
 
 ## License
 

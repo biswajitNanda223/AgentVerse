@@ -1,0 +1,38 @@
+name: agentverse
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    environment:
+      API_KEY: ${API_KEY:-local-development-only}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      QDRANT_URL: http://qdrant:6333
+      REDIS_URL: redis://redis:6379/0
+    ports: ["8000:8000"]
+    depends_on:
+      otel-collector: {condition: service_started}
+      qdrant: {condition: service_started}
+      redis: {condition: service_healthy}
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]
+  redis:
+    image: redis:8.2-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+  qdrant:
+    image: qdrant/qdrant:v1.15.4
+    volumes: ["qdrant-data:/qdrant/storage"]
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.134.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes: ["./otel-collector.yaml:/etc/otelcol/config.yaml:ro"]
+    ports: ["4317:4317", "8889:8889"]
+volumes:
+  qdrant-data:
+

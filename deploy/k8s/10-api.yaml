@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agentverse-api
+  namespace: agentverse
+spec:
+  replicas: 2
+  selector:
+    matchLabels: {app: agentverse-api}
+  template:
+    metadata:
+      labels: {app: agentverse-api}
+    spec:
+      serviceAccountName: agentverse-api
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: ghcr.io/example/agentverse:0.1.0
+          imagePullPolicy: IfNotPresent
+          ports: [{name: http, containerPort: 8000}]
+          envFrom:
+            - configMapRef: {name: agentverse-api}
+            - secretRef: {name: agentverse-api}
+          resources:
+            requests: {cpu: 250m, memory: 256Mi}
+            limits: {cpu: "1", memory: 1Gi}
+          readinessProbe:
+            httpGet: {path: /health/ready, port: http}
+            periodSeconds: 5
+          livenessProbe:
+            httpGet: {path: /health/live, port: http}
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts: [{name: tmp, mountPath: /tmp}]
+      volumes: [{name: tmp, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentverse-api
+  namespace: agentverse
+spec:
+  selector: {app: agentverse-api}
+  ports: [{name: http, port: 80, targetPort: http}]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: agentverse-api
+  namespace: agentverse
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agentverse-api
+  namespace: agentverse
+data:
+  APP_ENV: production
+  LOG_LEVEL: INFO
+  OTEL_SERVICE_NAME: agentverse-api
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: agentverse-api
+  namespace: agentverse
+type: Opaque
+stringData:
+  API_KEY: replace-through-external-secrets
+

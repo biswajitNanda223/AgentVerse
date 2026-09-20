@@ -66,12 +66,14 @@ docker compose -f deploy/docker-compose.yml up --build
 
 ## Learning paths
 
-1. [Architecture and design](docs/architecture.md)
-2. [RAG and chunking handbook](docs/rag-handbook.md)
-3. [ADK agents, MCP, A2A and Agents CLI](docs/agents-and-protocols.md)
-4. [Performance, accuracy, security and observability](docs/production-guide.md)
-5. [Deployment runbook](docs/deployment.md)
-6. [Attachment-derived requirements](references/ATTACHMENT_NOTES.md)
+1. [Documentation index](docs/README.md)
+2. [Architecture and design](docs/architecture.md)
+3. [RAG and chunking handbook](docs/rag-handbook.md)
+4. [ADK agents, MCP, A2A and Agents CLI](docs/agents-and-protocols.md)
+5. [Performance, accuracy, security and observability](docs/production-guide.md)
+6. [Deployment runbook](docs/deployment.md)
+7. [Attachment engineering playbook](docs/attachment-engineering-playbook.md)
+8. [Attachment review notes](references/ATTACHMENT_NOTES.md)
 
 ## Runnable strategy catalog
 

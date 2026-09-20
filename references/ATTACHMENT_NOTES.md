@@ -19,5 +19,9 @@ The expanded implementation directly encodes each observation: query-aware CRAG 
 monotonic checkpoints, tenant-scoped idempotency, single-writer parallel grouping, payload
 compaction with an external artifact reference, approval policies and provenance-bearing chunks.
 
+The maintained lesson-to-code-to-test traceability matrix is in
+[`docs/attachment-engineering-playbook.md`](../docs/attachment-engineering-playbook.md). The
+complete runnable demonstration is `examples/production_patterns/attachment_lessons.py`.
+
 Raw screenshots are intentionally ignored by Git to avoid republishing social-media and
 third-party visual content. Keep the original archive outside the repository.

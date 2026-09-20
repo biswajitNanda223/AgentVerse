@@ -1,0 +1,4 @@
+{"id":"hybrid-rag","query":"What combines exact terms and semantic similarity?","expected_sources":["docs://agentverse/rag-handbook"],"tenant_id":"demo"}
+{"id":"crag","query":"What should happen when retrieved chunks are weak?","expected_sources":["docs://agentverse/rag-handbook"],"tenant_id":"demo"}
+{"id":"no-answer","query":"What is the founder's private phone number?","expected_sources":[],"tenant_id":"demo"}
+

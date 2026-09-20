@@ -1,0 +1,9 @@
+name: agentverse
+description: Production ADK architecture and RAG reference agent
+language: python
+agent:
+  module: agentverse.agents.agent
+  variable: root_agent
+deployment:
+  target: cloud_run
+

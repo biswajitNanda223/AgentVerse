@@ -1,0 +1,63 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentverse"
+version = "0.1.0"
+description = "Production-grade ADK, RAG, MCP, A2A, OCR and API reference monorepo"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = {text = "Apache-2.0"}
+dependencies = [
+  "a2a-sdk==1.1.4",
+  "fastapi>=0.116,<1",
+  "google-adk==2.9.2",
+  "httpx>=0.28,<1",
+  "mcp==2.2.0",
+  "opentelemetry-api>=1.36,<2",
+  "opentelemetry-exporter-otlp-proto-grpc>=1.36,<2",
+  "opentelemetry-instrumentation-fastapi>=0.57b0,<1",
+  "opentelemetry-sdk>=1.36,<2",
+  "pydantic-settings>=2.10,<3",
+  "python-multipart>=0.0.20,<1",
+  "structlog>=25.4,<26",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+rag = [
+  "numpy>=2.2,<3",
+  "pymupdf>=1.26,<2",
+  "qdrant-client>=1.15,<2",
+  "sentence-transformers>=5.1,<6",
+]
+ocr = ["pillow>=11,<13", "pytesseract>=0.3.13,<1"]
+dev = [
+  "mypy>=1.17,<2",
+  "pytest>=8.4,<10",
+  "pytest-asyncio>=1.1,<2",
+  "pytest-cov>=6.2,<8",
+  "ruff>=0.12,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentverse"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "S"]
+ignore = ["S101"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["agentverse"]
+

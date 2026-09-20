@@ -9,6 +9,23 @@ memory, tenant-safe caching, and tamper-evident auditing.
 No model key or paid LLM call is required. The point is to make the control plane observable and
 testable before a model is plugged in.
 
+## Complete implementation map
+
+| Requirement | Implementation |
+|---|---|
+| Google ADK agent | `app/adk_agent.py`; retrieval and preview only, never commit |
+| Control-plane API | `app/api.py`; ask, propose, approve/reject, audit endpoints |
+| Durable state | SQLite local adapter and Postgres production adapter in `app/storage.py` |
+| Distributed cache | Redis tenant cache with TTL and targeted invalidation |
+| Signed skills | Publisher + origin + name + version + digest manifest signature |
+| Signed consent | Expiring action/tenant/approver/nonce token with one-time nonce storage |
+| Security telemetry | OpenTelemetry action, denial, approval, abstention, memory, latency meters |
+| Retrieval models | Zero-call bi-encoder baseline and shortlist cross-encoder contract |
+| Reproducible eval | Symbolic checks plus deterministic lightweight NLI and golden release gate |
+| Production traffic | k6 steady and spike scenarios with latency/error/isolation thresholds |
+| Isolation | Non-root/read-only Docker and restricted Kubernetes network policy |
+| Release safety | Ruff, formatting, MyPy, golden eval, tests, and two image builds in CI |
+
 ## In plain English
 
 Think of the model as a smart new employee. It may suggest what to do, but it does not get the
@@ -74,7 +91,29 @@ From the repository root:
 ```bash
 uv run python -m solutions.production_ai_security.app.demo
 uv run pytest solutions/production_ai_security/tests -q
+uv run python -m solutions.production_ai_security.evals.run
+uv run uvicorn solutions.production_ai_security.app.api:app --port 8001
 ```
+
+Run the complete local infrastructure with Postgres and Redis:
+
+```bash
+docker compose -f solutions/production_ai_security/docker-compose.yml up --build
+```
+
+Example action flow:
+
+```bash
+curl -X POST http://localhost:8001/v1/actions \
+  -H "x-api-key: local-development-only" -H "x-tenant-id: public" \
+  -H "x-subject: agent" -H "x-scopes: refunds:write" \
+  -H "content-type: application/json" \
+  -d '{"origin":"com.agentverse.payments","name":"issue_refund_lt_100","arguments":{"order_id":"ord-100","amount":79},"request_id":"refund-1"}'
+```
+
+An approver then calls `POST /v1/actions/{action_id}/decision` with
+`x-scopes: approvals:decide`. The approval is bound to that action and tenant, expires after five
+minutes, and has a nonce that can be consumed only once.
 
 ## What each control prevents
 
@@ -93,12 +132,14 @@ uv run pytest solutions/production_ai_security/tests -q
 | Trajectory evaluation | Correct answers produced through unsafe steps | `trajectory_policy` |
 | Hash-chained audit | Silent rewriting of the local event history | `AuditLog.verify_chain` |
 
-## Production integration boundaries
+## Production boundaries
 
-The in-memory adapters teach contracts, not infrastructure. Replace them with:
+Local mode uses in-memory orchestration and SQLite so tests need no services. Production adapters
+for Postgres and Redis are included; wire them through a secrets manager and managed service. The
+remaining environment-specific responsibilities are:
 
 - workload identity plus a policy engine such as OPA/Cedar or a cloud authorization service;
-- durable workflow/checkpoint storage and an outbox for exactly-once side effects;
+- a durable workflow engine/outbox around external providers for exactly-once intent;
 - isolated workers with network egress allowlists, CPU/memory/time limits, and no ambient secrets;
 - encrypted tenant-partitioned vector, cache, memory, and audit stores;
 - signed tool manifests bound to publisher identity, origin, version, and digest;

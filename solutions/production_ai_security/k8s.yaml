@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: security-api, namespace: agentverse}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: security-api}}
+  template:
+    metadata: {labels: {app: security-api}}
+    spec:
+      serviceAccountName: agentverse-api
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: api
+          image: ghcr.io/example/agentverse-security:0.1.0
+          ports: [{name: http, containerPort: 8000}]
+          resources:
+            requests: {cpu: 250m, memory: 256Mi}
+            limits: {cpu: "1", memory: 512Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts: [{name: tmp, mountPath: /tmp}]
+      volumes: [{name: tmp, emptyDir: {sizeLimit: 64Mi}}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: security-api-egress, namespace: agentverse}
+spec:
+  podSelector: {matchLabels: {app: security-api}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: ingress-nginx}}
+      ports: [{protocol: TCP, port: 8000}]
+  egress:
+    - to:
+        - podSelector: {matchLabels: {app: postgres}}
+      ports: [{protocol: TCP, port: 5432}]
+    - to:
+        - podSelector: {matchLabels: {app: redis}}
+      ports: [{protocol: TCP, port: 6379}]
+    - to:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: kube-system}}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}

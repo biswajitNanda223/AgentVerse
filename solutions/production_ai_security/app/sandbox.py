@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+import time
 from dataclasses import replace
 
 from solutions.production_ai_security.app.audit import AuditLog
@@ -11,6 +12,7 @@ from solutions.production_ai_security.app.models import (
     ToolRequest,
 )
 from solutions.production_ai_security.app.policy import PolicyEngine
+from solutions.production_ai_security.app.telemetry import approval_attempts, tool_latency_ms
 from solutions.production_ai_security.app.tools import ToolRegistry
 
 
@@ -48,7 +50,12 @@ class ActionSandbox:
         if not decision.allowed:
             record.state = ActionState.DENIED
         else:
+            started = time.perf_counter()
             record.preview = spec.handler(record.arguments, True)
+            tool_latency_ms.record(
+                (time.perf_counter() - started) * 1_000,
+                {"tool_id": spec.tool_id, "phase": "preview"},
+            )
             record.state = (
                 ActionState.AWAITING_APPROVAL
                 if decision.requires_approval
@@ -71,12 +78,20 @@ class ActionSandbox:
     def commit(self, action_id: str, identity: Identity, *, approved: bool = False) -> ActionRecord:
         record = self._owned(action_id, identity)
         if record.state is ActionState.AWAITING_APPROVAL and not approved:
+            approval_attempts.add(
+                1, {"tenant_id": identity.tenant_id, "result": "missing_approval"}
+            )
             raise PermissionError("explicit human approval is required")
         if record.state not in {ActionState.SANDBOXED, ActionState.AWAITING_APPROVAL}:
             raise ValueError(f"cannot commit action in state {record.state}")
         origin, name = record.tool_id.split("::", maxsplit=1)
         spec = self._registry.resolve(origin, name)
+        started = time.perf_counter()
         record.result = spec.handler(record.arguments, False)
+        tool_latency_ms.record(
+            (time.perf_counter() - started) * 1_000,
+            {"tool_id": spec.tool_id, "phase": "commit"},
+        )
         record.state = ActionState.COMMITTED
         self._audit.append(
             "action.committed",

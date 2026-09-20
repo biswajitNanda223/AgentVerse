@@ -168,11 +168,12 @@ AgentVerse/
 # Static quality
 uv run ruff check .
 uv run ruff format --check .
-uv run mypy src/agentverse solutions/agentic_rag_end_to_end/app
+uv run mypy src/agentverse solutions/agentic_rag_end_to_end/app solutions/production_ai_security/app
 
 # Tests and coverage
-uv run pytest tests solutions/agentic_rag_end_to_end/tests \
-  --cov=agentverse --cov=solutions.agentic_rag_end_to_end.app
+uv run pytest tests solutions/agentic_rag_end_to_end/tests solutions/production_ai_security/tests \
+  --cov=agentverse --cov=solutions.agentic_rag_end_to_end.app \
+  --cov=solutions.production_ai_security.app
 
 # ADK lifecycle
 uvx google-agents-cli setup

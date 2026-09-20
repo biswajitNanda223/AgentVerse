@@ -1,0 +1,46 @@
+name: agentverse-security
+services:
+  security-api:
+    build:
+      context: ../..
+      dockerfile: solutions/production_ai_security/Dockerfile
+    environment:
+      API_KEY: ${API_KEY:-local-development-only}
+      APPROVAL_SIGNING_SECRET: ${APPROVAL_SIGNING_SECRET:-local-approval-secret-change-me-123456789}
+      POSTGRES_DSN: postgresql://agentverse:agentverse@postgres:5432/agentverse
+      REDIS_URL: redis://redis:6379/0
+      SECURITY_DB_PATH: /tmp/security.db
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports: ["8001:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+    read_only: true
+    tmpfs: ["/tmp:size=64m,noexec,nosuid"]
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: ["ALL"]
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 1.0
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: agentverse
+      POSTGRES_PASSWORD: agentverse
+      POSTGRES_DB: agentverse
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agentverse"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes: ["security-postgres:/var/lib/postgresql/data"]
+  redis:
+    image: redis:8.2-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+volumes:
+  security-postgres:

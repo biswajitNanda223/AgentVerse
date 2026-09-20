@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from solutions.production_ai_security.app.models import RiskLevel
+from solutions.production_ai_security.app.signing import ManifestVerifier, ToolManifest
 
 ToolHandler = Callable[[dict[str, Any], bool], dict[str, Any]]
 
@@ -51,6 +52,28 @@ class ToolRegistry:
         self._tools[key] = spec
         return spec
 
+    def register_signed(
+        self,
+        *,
+        manifest: ToolManifest,
+        signature: str,
+        verifier: ManifestVerifier,
+        required_scope: str,
+        risk: RiskLevel,
+        handler: ToolHandler,
+    ) -> ToolSpec:
+        if manifest.digest != self.handler_digest(handler):
+            raise PermissionError("manifest digest does not match tool code")
+        if not verifier.verify(manifest, signature):
+            raise PermissionError("tool manifest signature rejected")
+        return self.register(
+            origin=manifest.origin,
+            name=manifest.name,
+            required_scope=required_scope,
+            risk=risk,
+            handler=handler,
+        )
+
     def resolve(self, origin: str, name: str) -> ToolSpec:
         try:
             spec = self._tools[(origin, name)]
@@ -90,25 +113,34 @@ def issue_refund_lt_100(arguments: dict[str, Any], dry_run: bool) -> dict[str, A
 
 def build_default_registry() -> ToolRegistry:
     registry = ToolRegistry()
-    registry.register(
-        origin="com.agentverse.orders",
-        name="read_orders",
-        required_scope="orders:read",
-        risk=RiskLevel.READ,
-        handler=read_orders,
+    verifier = ManifestVerifier({"agentverse": "local-publisher-key-change-in-production"})
+    definitions = (
+        ("com.agentverse.orders", "read_orders", "orders:read", RiskLevel.READ, read_orders),
+        (
+            "com.agentverse.customers",
+            "read_customer",
+            "customers:read",
+            RiskLevel.READ,
+            read_customer,
+        ),
+        (
+            "com.agentverse.payments",
+            "issue_refund_lt_100",
+            "refunds:write",
+            RiskLevel.IRREVERSIBLE_WRITE,
+            issue_refund_lt_100,
+        ),
     )
-    registry.register(
-        origin="com.agentverse.customers",
-        name="read_customer",
-        required_scope="customers:read",
-        risk=RiskLevel.READ,
-        handler=read_customer,
-    )
-    registry.register(
-        origin="com.agentverse.payments",
-        name="issue_refund_lt_100",
-        required_scope="refunds:write",
-        risk=RiskLevel.IRREVERSIBLE_WRITE,
-        handler=issue_refund_lt_100,
-    )
+    for origin, name, scope, risk, handler in definitions:
+        manifest = ToolManifest(
+            origin, name, "1.0.0", registry.handler_digest(handler), "agentverse"
+        )
+        registry.register_signed(
+            manifest=manifest,
+            signature=verifier.sign(manifest),
+            verifier=verifier,
+            required_scope=scope,
+            risk=risk,
+            handler=handler,
+        )
     return registry

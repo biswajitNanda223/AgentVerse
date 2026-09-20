@@ -21,6 +21,8 @@ dependencies = [
   "opentelemetry-sdk>=1.36,<2",
   "pydantic-settings>=2.10,<3",
   "python-multipart>=0.0.20,<1",
+  "psycopg[binary]>=3.2,<4",
+  "redis>=6,<8",
   "structlog>=25.4,<26",
   "uvicorn[standard]>=0.35,<1",
 ]
@@ -60,4 +62,3 @@ addopts = "-q --strict-markers"
 python_version = "3.11"
 strict = true
 packages = ["agentverse"]
-

@@ -10,6 +10,7 @@ htmlcov/
 dist/
 build/
 *.egg-info/
+*.db
 .idea/
 .vscode/
 data/raw/*
@@ -18,4 +19,3 @@ data/index/*
 !data/index/.gitkeep
 references/attachments/
 artifacts/
-

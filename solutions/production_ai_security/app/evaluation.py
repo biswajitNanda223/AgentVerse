@@ -16,7 +16,7 @@ class EvalResult:
 
 def retrieval_recall(retrieved: tuple[Evidence, ...], expected_ids: set[str]) -> EvalResult:
     actual = {item.document_id for item in retrieved}
-    score = len(actual & expected_ids) / max(len(expected_ids), 1)
+    score = len(actual & expected_ids) / len(expected_ids) if expected_ids else float(not actual)
     return EvalResult("retrieval_recall", score >= 0.8, score, f"retrieved={sorted(actual)}")
 
 

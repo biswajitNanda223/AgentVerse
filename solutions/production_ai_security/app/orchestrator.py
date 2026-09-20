@@ -13,6 +13,7 @@ from solutions.production_ai_security.app.models import (
 from solutions.production_ai_security.app.policy import PolicyEngine
 from solutions.production_ai_security.app.retrieval import SecureRetriever
 from solutions.production_ai_security.app.sandbox import ActionSandbox
+from solutions.production_ai_security.app.telemetry import actions, denials, retrieval_abstentions
 from solutions.production_ai_security.app.tools import ToolRegistry, build_default_registry
 
 
@@ -51,6 +52,7 @@ class SecureAgent:
             )
         evidence = self.retriever.search(question, tenant_id=identity.tenant_id)
         if not evidence:
+            retrieval_abstentions.add(1, {"tenant_id": identity.tenant_id})
             response = AgentResponse(
                 "I do not have enough trusted evidence to answer.", (), trace=tuple(trace)
             )
@@ -73,7 +75,9 @@ class SecureAgent:
     def propose_action(self, identity: Identity, request: ToolRequest) -> AgentResponse:
         trace = ("authenticate", "resolve_origin_name", "authorize", "sandbox")
         record = self.sandbox.propose(identity, request)
+        actions.add(1, {"tenant_id": identity.tenant_id, "tool_id": record.tool_id})
         if record.state is ActionState.DENIED:
+            denials.add(1, {"tenant_id": identity.tenant_id, "tool_id": record.tool_id})
             return AgentResponse(
                 f"Action denied: {record.reason}", (), action_id=record.action_id, trace=trace
             )

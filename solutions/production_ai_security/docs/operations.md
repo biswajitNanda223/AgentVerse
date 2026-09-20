@@ -43,6 +43,32 @@ preserving the immutable evidence under the incident-retention policy.
 - Smaller accelerators are economical only when traffic keeps them utilized; bursty traffic can
   make queueing and cold capacity dominate unit cost.
 
+### GPU capacity in plain language
+
+Autoregressive generation repeatedly reads model weights while producing one token at a time. The
+limiting resource is therefore often memory bandwidth—how quickly weight bytes can reach compute—
+rather than headline FLOPs. Measure tokens/second, time-to-first-token, batch occupancy, KV-cache
+pressure, and GPU utilization using your real prompt/output distribution. A cheaper L4 can cost
+more per completed request when spiky traffic leaves it underutilized or forces long queues. Run
+the included steady and spike k6 scenarios against every serving shape; treat 60% utilization as
+a hypothesis to validate, not a universal constant.
+
+### Retrieval cost path
+
+Use a bi-encoder to score the large corpus because document vectors can be prepared ahead of
+time. Apply a cross-encoder only to a shortlist because it reads each query-document pair jointly
+and is much more expensive. Evaluate retrieval before generation: recall@k, tenant correctness,
+freshness, provenance, and then reranking quality. `semantic_eval.py` provides zero-call baselines
+and stable interfaces that production sentence-transformer/NLI services can replace.
+
+## Observability and release gates
+
+Export OpenTelemetry counters for actions, denials, approvals, retrieval abstentions, memory
+rejections, and tool latency. Dashboard rates per tenant and tool origin without placing raw
+prompts, secrets, or customer records in metric attributes. CI runs static analysis, strict types,
+golden retrieval/security evaluation, the full test suite, and both container builds. Run k6 before
+promotion and fail the release when error, latency, or tenant-isolation thresholds regress.
+
 ## Memory lifecycle
 
 ```mermaid

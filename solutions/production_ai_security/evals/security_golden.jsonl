@@ -1,0 +1,2 @@
+{"name":"trusted consent","query":"human approval consent","tenant_id":"public","expected_ids":["consent"],"minimum_recall":1.0}
+{"name":"tenant isolation","query":"private policy","tenant_id":"tenant-a","expected_ids":[],"minimum_recall":1.0}

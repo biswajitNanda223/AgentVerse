@@ -17,7 +17,7 @@ canary, run smoke/eval gates, then promote. The example manifests include non-ro
 read-only filesystem, resource requests/limits, probes, HPA, PDB and deny-by-default egress.
 
 ```bash
-docker build -f deploy/Dockerfile -t agentverse:0.1.0 .
+docker build -f packages/agentverse/Dockerfile -t agentverse:0.1.0 .
 kubectl apply -f deploy/k8s/
 kubectl rollout status deployment/agentverse-api -n agentverse
 ```

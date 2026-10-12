@@ -3,7 +3,7 @@ services:
   api:
     build:
       context: ..
-      dockerfile: deploy/Dockerfile
+      dockerfile: packages/agentverse/Dockerfile
     environment:
       API_KEY: ${API_KEY:-local-development-only}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317

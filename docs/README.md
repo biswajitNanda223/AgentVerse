@@ -8,8 +8,8 @@
 | [Production guide](production-guide.md) | speed, scale, failures, security and telemetry |
 | [Deployment](deployment.md) | local, containers, Kubernetes, Google targets and rollback |
 | [Attachment playbook](attachment-engineering-playbook.md) | screenshot lesson → code → test traceability |
-| [One-shot solution](../solutions/agentic_rag_end_to_end/README.md) | complete prompt-to-user vertical slice |
-| [Production AI security](../solutions/production_ai_security/README.md) | rollback-first agent, least-privilege tools, secure memory/cache, evals and runbooks |
+| [One-shot solution](../agents/agentic_rag/README.md) | complete prompt-to-user vertical slice |
+| [Production AI security](../agents/production_security/README.md) | rollback-first agent, least-privilege tools, secure memory/cache, evals and runbooks |
 
 Documentation changes are product changes. Update diagrams, commands, configuration and linked
 tests with the implementation in the same commit. Prefer relative links so GitHub and local

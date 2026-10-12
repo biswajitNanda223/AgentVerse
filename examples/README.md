@@ -1,6 +1,6 @@
 # Runnable examples
 
-Every example imports the production-shaped implementation from `src/agentverse`; algorithms
+Every example imports the production-shaped implementation from `packages/agentverse/src/agentverse`; algorithms
 are not copied into notebooks. Run any example from the repository root:
 
 ```bash

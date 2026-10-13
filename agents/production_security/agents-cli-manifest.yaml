@@ -1,0 +1,8 @@
+name: agentverse-production-security
+description: Security-first ADK agent with consent, least privilege, signed skills and audit
+language: python
+agent:
+  module: production_security.adk_agent
+  variable: root_agent
+deployment:
+  target: cloud_run

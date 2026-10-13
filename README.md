@@ -21,12 +21,12 @@ together.
 
 | Goal | Entry point |
 |---|---|
-| Run the complete prompt-to-user system | [Agentic RAG end-to-end solution](solutions/agentic_rag_end_to_end/README.md) |
+| Run the complete prompt-to-user system | [Agentic RAG end-to-end solution](agents/agentic_rag/README.md) |
 | Learn every RAG strategy | [RAG examples](examples/rag/README.md) |
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
-| Build a security-first agent with rollback, memory and evals | [Production AI security solution](solutions/production_ai_security/README.md) |
+| Build a security-first agent with rollback, memory and evals | [Production AI security solution](agents/production_security/README.md) |
 | Use ADK, MCP, A2A and Agents CLI | [Agents and protocols](docs/agents-and-protocols.md) |
 | Deploy with containers or Kubernetes | [Deployment runbook](docs/deployment.md) |
 | Browse all documentation | [Documentation index](docs/README.md) |
@@ -90,7 +90,7 @@ git clone https://github.com/biswajitNanda223/AgentVerse.git
 cd AgentVerse
 cp .env.example .env
 uv sync --extra dev
-uv run pytest tests solutions/agentic_rag_end_to_end/tests
+uv run pytest tests agents/agentic_rag/tests
 uv run uvicorn agentverse.api.app:create_app --factory --reload
 ```
 
@@ -100,7 +100,7 @@ model key. Set `GOOGLE_API_KEY` or configure Vertex AI credentials for live ADK 
 ### Run the complete one-shot solution
 
 ```bash
-uv run uvicorn solutions.agentic_rag_end_to_end.app.api:create_app --factory --reload
+make rag-api
 ```
 
 In another terminal:
@@ -140,44 +140,40 @@ identity, queues, models and policy services required for real traffic.
 ## Repository structure
 
 ```text
-AgentVerse/
-├── src/agentverse/
-│   ├── agents/          ADK agents, tools, guardrails and reliability controls
-│   ├── api/             standalone FastAPI integration
-│   ├── core/            settings, security, errors and telemetry
-│   ├── production/      failure recovery and provenance
-│   ├── protocols/       standalone MCP and A2A adapters
-│   └── rag/             chunking, retrieval, OCR and RAG strategies
-├── solutions/
-│   ├── agentic_rag_end_to_end/  complete prompt-to-user vertical solution
-│   └── production_ai_security/  security-first agent, memory, cache, evals and runbooks
-├── examples/
-│   ├── rag/             independently runnable RAG patterns
-│   ├── chunking/        independently runnable chunking patterns
-│   └── production_patterns/
-├── tests/               unit and API tests
-├── evals/               golden retrieval cases
-├── docs/                architecture and operational guides
-├── deploy/              Docker, Compose, OTel and Kubernetes assets
-└── references/          attachment review and traceability notes
+AgentVerse/                       uv workspace root (pyproject.toml + single uv.lock)
+├── packages/
+│   └── agentverse/               shared library (src/agentverse) + its tests, evals, Dockerfile
+│       ├── src/agentverse/
+│       │   ├── agents/           ADK agents, tools, guardrails and reliability controls
+│       │   ├── api/              standalone FastAPI integration
+│       │   ├── core/             settings, security, errors and telemetry
+│       │   ├── production/       failure recovery and provenance
+│       │   ├── protocols/        standalone MCP and A2A adapters
+│       │   └── rag/              chunking, retrieval, OCR and RAG strategies
+│       └── agents-cli-manifest.yaml
+├── agents/                       one deployable ADK agent per workspace member
+│   ├── agentic_rag/              complete prompt-to-user vertical solution
+│   └── production_security/      security-first agent, memory, cache, evals and runbooks
+├── examples/                     runnable RAG, chunking and production patterns
+├── docs/                         architecture and operational guides
+├── deploy/                       shared Compose, OTel and Kubernetes assets
+└── references/                   attachment review and traceability notes
 ```
+
+Each agent is its own installable package (`src/<package>`, own `pyproject.toml`, tests, evals,
+Dockerfile, k8s manifest and `agents-cli-manifest.yaml`) that depends on the shared
+`agentverse` library through the workspace. To add an agent, create `agents/<name>/` with a
+`pyproject.toml` depending on `agentverse = {workspace = true}` and run `uv lock`.
 
 ## Quality and operations
 
 ```bash
-# Static quality
-uv run ruff check .
-uv run ruff format --check .
-uv run mypy src/agentverse solutions/agentic_rag_end_to_end/app solutions/production_ai_security/app
-
-# Tests and coverage
-uv run pytest tests solutions/agentic_rag_end_to_end/tests solutions/production_ai_security/tests \
-  --cov=agentverse --cov=solutions.agentic_rag_end_to_end.app \
-  --cov=solutions.production_ai_security.app
+make check          # ruff, mypy, security eval gate and all tests
+make lint | typecheck | eval | test
 
 # ADK lifecycle
 uvx google-agents-cli setup
-agents-cli playground
+cd agents/agentic_rag && agents-cli playground   # run from any agent directory
 agents-cli eval run
 
 # Supporting services

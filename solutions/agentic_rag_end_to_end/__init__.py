@@ -1,1 +1,0 @@
-"""Deployable AgentVerse vertical slice."""

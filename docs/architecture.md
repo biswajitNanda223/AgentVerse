@@ -45,7 +45,7 @@ sequenceDiagram
 - `agents` maps deterministic capabilities into ADK tools and workflow agents.
 - `api` translates HTTP into application commands. It does not contain retrieval logic.
 - `protocols` exposes small adapter processes. MCP and A2A are not hidden inside the API.
-- `solutions/agentic_rag_end_to_end` assembles those boundaries into one runnable vertical
+- `agents/agentic_rag` assembles those boundaries into one runnable vertical
   slice while keeping protocol processes independently deployable.
 
 ## State and side effects

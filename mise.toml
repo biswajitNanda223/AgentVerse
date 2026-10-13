@@ -1,0 +1,35 @@
+[tools]
+python = "3.13"
+uv = "0.9.0"
+
+[env]
+_.file = { path = ".env", redact = true }
+UV_PROJECT_ENVIRONMENT = ".venv"
+
+[tasks.install]
+description = "Sync every workspace member with all extras"
+run = "uv sync --all-packages --all-extras"
+
+[tasks.lint]
+description = "Ruff lint and format check"
+run = ["uv run ruff check .", "uv run ruff format --check ."]
+
+[tasks.typecheck]
+run = "uv run mypy"
+
+[tasks.eval]
+description = "Security evaluation gate"
+run = "uv run python agents/production_security/evals/run.py"
+
+[tasks.test]
+run = "uv run pytest"
+
+[tasks.check]
+description = "Everything CI runs"
+depends = ["lint", "typecheck", "eval", "test"]
+
+[tasks.rag-api]
+run = "uv run --package agentverse-agentic-rag uvicorn agentic_rag.api:create_app --factory --reload"
+
+[tasks.security-api]
+run = "uv run --package agentverse-production-security uvicorn production_security.api:app --reload"

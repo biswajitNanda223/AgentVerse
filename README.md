@@ -160,6 +160,19 @@ AgentVerse/                       uv workspace root (pyproject.toml + single uv.
 └── references/                   attachment review and traceability notes
 ```
 
+```mermaid
+flowchart LR
+  Root["uv workspace root<br/>pyproject.toml + uv.lock"] --> Lib["packages/agentverse<br/>shared library"]
+  Root --> RAG["agents/agentic_rag"]
+  Root --> Sec["agents/production_security"]
+  RAG -->|"workspace dependency"| Lib
+  Sec -->|"workspace dependency"| Lib
+  Lib --> Parts["rag - agents - protocols - core - api"]
+  RAG --> Img1["Docker image + Cloud Run<br/>agents-cli manifest"]
+  Sec --> Img2["Docker image + Cloud Run<br/>agents-cli manifest"]
+  Lib --> Img0["Docker image<br/>standalone API"]
+```
+
 Each agent is its own installable package (`src/<package>`, own `pyproject.toml`, tests, evals,
 Dockerfile, k8s manifest and `agents-cli-manifest.yaml`) that depends on the shared
 `agentverse` library through the workspace. To add an agent, create `agents/<name>/` with a

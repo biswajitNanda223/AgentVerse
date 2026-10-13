@@ -4,7 +4,7 @@
 
 ```bash
 cp .env.example .env
-uv sync --extra dev --extra rag --extra ocr
+uv sync --all-packages --all-extras
 docker compose -f deploy/docker-compose.yml up --build
 curl http://localhost:8000/health/live
 ```

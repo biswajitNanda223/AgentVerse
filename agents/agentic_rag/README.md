@@ -88,7 +88,7 @@ From the repository root:
 
 ```bash
 copy agents\agentic_rag\.env.example agents\agentic_rag\.env
-uv sync --extra dev
+uv sync --all-packages
 uv run uvicorn agentic_rag.api:create_app --factory --reload
 ```
 

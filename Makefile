@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck test eval check api rag-api security-api mcp compose-up compose-down lock
+.PHONY: install lint typecheck test eval docs check api rag-api security-api mcp compose-up compose-down lock
 install:
 	uv sync --all-packages --all-extras
 lock:
@@ -12,7 +12,9 @@ test:
 	uv run pytest --cov=agentverse --cov=agentic_rag --cov=production_security --cov-report=term-missing
 eval:
 	uv run python agents/production_security/evals/run.py
-check: lint typecheck eval test
+docs:
+	uv run python scripts/check_docs.py
+check: lint typecheck eval docs test
 api:
 	uv run --package agentverse uvicorn agentverse.api.app:create_app --factory --reload
 rag-api:

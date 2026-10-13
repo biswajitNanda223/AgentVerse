@@ -1,0 +1,43 @@
+name: agentverse-event-worker
+services:
+  redpanda:  # Kafka-compatible broker; stands in for Azure Event Hubs locally
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.11
+    command: >
+      redpanda start --overprovisioned --smp 1 --memory 512M --reserve-memory 0M
+      --node-id 0 --check=false
+      --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+    ports: ["19092:19092"]
+    healthcheck:
+      test: ["CMD", "rpk", "cluster", "health"]
+      interval: 5s
+      retries: 20
+  topics:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.11
+    depends_on:
+      redpanda: {condition: service_healthy}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - rpk -X brokers=redpanda:9092 topic create agent.tasks agent.results agent.tasks.dlq || true
+    restart: "no"
+  azurite:  # Azure Blob Storage emulator
+    image: mcr.microsoft.com/azure-storage/azurite:3.33.0
+    command: azurite-blob --blobHost 0.0.0.0 --skipApiVersionCheck
+    ports: ["10000:10000"]
+  worker:
+    build:
+      context: ../..
+      dockerfile: agents/event_worker/Dockerfile
+    depends_on:
+      topics: {condition: service_completed_successfully}
+      azurite: {condition: service_started}
+    environment:
+      EVENTS_BACKEND: azure
+      EVENTS_KAFKA_BOOTSTRAP_SERVERS: redpanda:9092
+      EVENTS_KAFKA_SECURITY_PROTOCOL: PLAINTEXT
+      # Azurite's published development account key; not a secret.
+      EVENTS_BLOB_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"
+    ports: ["8000:8000"]
+    read_only: true
+    tmpfs: ["/tmp"]
+    security_opt: ["no-new-privileges:true"]

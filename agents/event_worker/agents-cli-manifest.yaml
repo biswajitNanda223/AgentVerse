@@ -1,0 +1,8 @@
+name: agentverse-event-worker
+description: Event-driven ADK agent consuming Kafka tasks and storing results in Azure Blob Storage
+language: python
+agent:
+  module: event_worker.adk_agent
+  variable: root_agent
+deployment:
+  target: cloud_run

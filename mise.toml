@@ -24,9 +24,13 @@ run = "uv run python agents/production_security/evals/run.py"
 [tasks.test]
 run = "uv run pytest"
 
+[tasks.docs]
+description = "Check Markdown links"
+run = "uv run python scripts/check_docs.py"
+
 [tasks.check]
 description = "Everything CI runs"
-depends = ["lint", "typecheck", "eval", "test"]
+depends = ["lint", "typecheck", "eval", "docs", "test"]
 
 [tasks.rag-api]
 run = "uv run --package agentverse-agentic-rag uvicorn agentic_rag.api:create_app --factory --reload"

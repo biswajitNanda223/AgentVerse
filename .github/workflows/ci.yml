@@ -19,6 +19,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run python agents/production_security/evals/run.py
+      - run: uv run python scripts/check_docs.py
       - run: uv run pytest --cov=agentverse --cov=agentic_rag --cov=production_security --cov-report=xml
   images:
     runs-on: ubuntu-latest

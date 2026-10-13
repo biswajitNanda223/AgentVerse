@@ -83,15 +83,16 @@ idempotency and a durable checkpoint.
 
 ## Quick start
 
-Prerequisites: Python 3.11–3.13 and [uv](https://docs.astral.sh/uv/).
+Prerequisites: Python 3.11–3.13 and [uv](https://docs.astral.sh/uv/) (or
+[mise](https://mise.jdx.dev/): `mise install` then `mise run check`).
 
 ```bash
 git clone https://github.com/biswajitNanda223/AgentVerse.git
 cd AgentVerse
 cp .env.example .env
-uv sync --extra dev
-uv run pytest tests agents/agentic_rag/tests
-uv run uvicorn agentverse.api.app:create_app --factory --reload
+make install        # uv sync --all-packages --all-extras
+make test
+make api            # shared-library demo API
 ```
 
 Open `http://localhost:8000/docs`. The local deterministic retrieval examples do not require a
@@ -181,8 +182,8 @@ Dockerfile, k8s manifest and `agents-cli-manifest.yaml`) that depends on the sha
 ## Quality and operations
 
 ```bash
-make check          # ruff, mypy, security eval gate and all tests
-make lint | typecheck | eval | test
+make check          # ruff, mypy, security eval gate, docs links and all tests
+make lint | typecheck | eval | docs | test
 
 # ADK lifecycle
 uvx google-agents-cli setup
@@ -197,6 +198,16 @@ Before production, replace local in-memory adapters with durable tenant-aware st
 identity and secrets, queued ingestion, explicit network policy and an approved telemetry
 backend. Run retrieval, answer-quality, agent-trajectory, security and load gates before every
 release. See the [production guide](docs/production-guide.md) for the complete checklist.
+
+## Maintaining the monorepo
+
+| Task | How |
+|---|---|
+| Add an agent | Create `agents/<name>/` with `pyproject.toml` (`agentverse = {workspace = true}`), `src/<name>/`, tests, `agents-cli-manifest.yaml`, `Dockerfile`; add it to `[tool.mypy] packages` and `[tool.ruff.lint.isort] known-first-party` in the root `pyproject.toml`, the Makefile coverage flags and the CI image matrix; run `uv lock` |
+| Change a dependency | Edit the member's `pyproject.toml`, run `uv lock`, commit `uv.lock` (Docker builds use `--frozen`) |
+| Upgrade ADK, A2A or MCP | Bump the pin in `packages/agentverse/pyproject.toml`, update the baseline note and badge above, then run `make check` and the evals before merging |
+| Edit docs or diagrams | Keep relative links valid (`make docs` checks them); Mermaid blocks must render on GitHub |
+| Release an image | CI builds `packages/agentverse`, `agents/agentic_rag` and `agents/production_security` images from the repo root |
 
 ## Contributing and security
 

@@ -210,11 +210,14 @@ release. See the [production guide](docs/production-guide.md) for the complete c
 
 | Task | How |
 |---|---|
-| Add an agent | Create `agents/<name>/` with `pyproject.toml` (`agentverse = {workspace = true}`), `src/<name>/`, tests, `agents-cli-manifest.yaml`, `Dockerfile`; add it to `[tool.mypy] packages` and `[tool.ruff.lint.isort] known-first-party` in the root `pyproject.toml`, the Makefile coverage flags and the CI image matrix; run `uv lock` |
+| Add an agent | `python3 scripts/new_agent.py <name> "<description>"` scaffolds `agents/<name>/` and registers it in the root `pyproject.toml`, Makefile and CI; then `uv lock`, replace the placeholders and run `make check` (or ask Claude Code: the `add-agent` skill does this) |
 | Change a dependency | Edit the member's `pyproject.toml`, run `uv lock`, commit `uv.lock` (Docker builds use `--frozen`) |
 | Upgrade ADK, A2A or MCP | Bump the pin in `packages/agentverse/pyproject.toml`, update the baseline note and badge above, then run `make check` and the evals before merging |
 | Edit docs or diagrams | Keep relative links valid (`make docs` checks them); Mermaid blocks must render on GitHub |
 | Release an image | CI builds `packages/agentverse`, `agents/agentic_rag` and `agents/production_security` images from the repo root |
+
+Claude Code project skills live in `.claude/skills/`: `add-agent` (scaffold an agent), `check`
+(run the quality gate) and `steward` (conventions for driving PRs to green).
 
 ## Contributing and security
 

@@ -33,18 +33,19 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "S"]
 ignore = ["S101"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agentverse", "agentic_rag", "production_security"]
+known-first-party = ["agentverse", "agentic_rag", "production_security", "event_worker"]
 
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers --import-mode=importlib"
-testpaths = ["packages/agentverse/tests", "agents/agentic_rag/tests", "agents/production_security/tests"]
+asyncio_mode = "auto"
+testpaths = ["packages/agentverse/tests", "agents/agentic_rag/tests", "agents/production_security/tests", "agents/event_worker/tests"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
-packages = ["agentverse", "agentic_rag", "production_security"]
+packages = ["agentverse", "agentic_rag", "production_security", "event_worker"]
 
 [[tool.mypy.overrides]]
-module = ["numpy.*", "pytesseract.*", "PIL.*", "qdrant_client.*", "fitz.*", "pymupdf.*", "sentence_transformers.*"]
+module = ["numpy.*", "pytesseract.*", "PIL.*", "qdrant_client.*", "fitz.*", "pymupdf.*", "sentence_transformers.*", "aiokafka.*"]
 ignore_missing_imports = true
 follow_imports = "skip"

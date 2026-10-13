@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentverse-event-worker"
+version = "0.1.0"
+description = "Event-driven ADK agent: Kafka (Azure Event Hubs) consumer, Azure Blob results, background service"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = {text = "Apache-2.0"}
+dependencies = [
+  "agentverse",
+  "aiokafka>=0.12,<1",
+  "azure-identity>=1.19,<2",
+  "azure-storage-blob>=12.24,<13",
+]
+
+[tool.uv.sources]
+agentverse = {workspace = true}
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/event_worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

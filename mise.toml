@@ -37,3 +37,7 @@ run = "uv run --package agentverse-agentic-rag uvicorn agentic_rag.api:create_ap
 
 [tasks.security-api]
 run = "uv run --package agentverse-production-security uvicorn production_security.api:app --reload"
+
+[tasks.worker]
+description = "Run the Kafka/Azure event worker (in-memory backend by default)"
+run = "uv run --package agentverse-event-worker python -m event_worker"

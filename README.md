@@ -26,6 +26,7 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Run an unattended agent on Kafka / Azure Event Hubs with Azure Blob results | [Event worker](agents/event_worker/README.md) |
 | Build a security-first agent with rollback, memory and evals | [Production AI security solution](agents/production_security/README.md) |
 | Use ADK, MCP, A2A and Agents CLI | [Agents and protocols](docs/agents-and-protocols.md) |
 | Deploy with containers or Kubernetes | [Deployment runbook](docs/deployment.md) |
@@ -48,6 +49,8 @@ together.
   screening, citation verification, provenance, context compaction and failure-specific recovery.
 - **AI security reference:** origin-bound tools, rollback-first consent, tenant-safe memory/cache,
   adversarial and trajectory evaluations, threat modeling and incident operations.
+- **Event-driven agents:** Kafka / Azure Event Hubs consumer as a background service with
+  idempotent Azure Blob results, retries, dead-letter topic and commit-after-handle delivery.
 - **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
   Kubernetes security contexts, HPA and PodDisruptionBudget.
 
@@ -154,7 +157,8 @@ AgentVerse/                       uv workspace root (pyproject.toml + single uv.
 │       └── agents-cli-manifest.yaml
 ├── agents/                       one deployable ADK agent per workspace member
 │   ├── agentic_rag/              complete prompt-to-user vertical solution
-│   └── production_security/      security-first agent, memory, cache, evals and runbooks
+│   ├── production_security/      security-first agent, memory, cache, evals and runbooks
+│   └── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
 ├── examples/                     runnable RAG, chunking and production patterns
 ├── docs/                         architecture and operational guides
 ├── deploy/                       shared Compose, OTel and Kubernetes assets
@@ -170,6 +174,9 @@ flowchart LR
   Sec -->|"workspace dependency"| Lib
   Lib --> Parts["rag - agents - protocols - core - api"]
   RAG --> Img1["Docker image + Cloud Run<br/>agents-cli manifest"]
+  Root --> EW["agents/event_worker"]
+  EW -->|"workspace dependency"| Lib
+  EW --> Img3["Docker image + Cloud Run<br/>Kafka in, Azure Blob out"]
   Sec --> Img2["Docker image + Cloud Run<br/>agents-cli manifest"]
   Lib --> Img0["Docker image<br/>standalone API"]
 ```

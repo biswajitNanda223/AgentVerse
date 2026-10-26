@@ -1,0 +1,8 @@
+name: agentverse-system-one-triage
+description: System One (Jev) triage: typed, calibrated fast decisions route each ticket to auto-handling or an ADK agent
+language: python
+agent:
+  module: system_one_triage.adk_agent
+  variable: root_agent
+deployment:
+  target: cloud_run

@@ -26,6 +26,7 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Build with a System One model (TypeSafe Jev): typed fast decisions routing to an agent | [System One triage](agents/system_one_triage/README.md) |
 | Run an unattended agent on Kafka / Azure Event Hubs with Azure Blob results | [Event worker](agents/event_worker/README.md) |
 | Build a security-first agent with rollback, memory and evals | [Production AI security solution](agents/production_security/README.md) |
 | Use ADK, MCP, A2A and Agents CLI | [Agents and protocols](docs/agents-and-protocols.md) |
@@ -51,6 +52,8 @@ together.
   adversarial and trajectory evaluations, threat modeling and incident operations.
 - **Event-driven agents:** Kafka / Azure Event Hubs consumer as a background service with
   idempotent Azure Blob results, retries, dead-letter topic and commit-after-handle delivery.
+- **System One models:** typed, calibrated fast decisions (choice, score, probability) from
+  TypeSafe Jev routing work in plain code, with System Two escalation and fail-safe fallback.
 - **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
   Kubernetes security contexts, HPA and PodDisruptionBudget.
 
@@ -158,7 +161,8 @@ AgentVerse/                       uv workspace root (pyproject.toml + single uv.
 ├── agents/                       one deployable ADK agent per workspace member
 │   ├── agentic_rag/              complete prompt-to-user vertical solution
 │   ├── production_security/      security-first agent, memory, cache, evals and runbooks
-│   └── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
+│   ├── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
+│   └── system_one_triage/        System One (Jev) typed decisions routing tickets to an ADK agent
 ├── examples/                     runnable RAG, chunking and production patterns
 ├── docs/                         architecture and operational guides
 ├── deploy/                       shared Compose, OTel and Kubernetes assets
@@ -177,6 +181,9 @@ flowchart LR
   Root --> EW["agents/event_worker"]
   EW -->|"workspace dependency"| Lib
   EW --> Img3["Docker image + Cloud Run<br/>Kafka in, Azure Blob out"]
+  Root --> ST["agents/system_one_triage"]
+  ST -->|"workspace dependency"| Lib
+  ST --> Img4["Docker image + Cloud Run<br/>System One router + ADK agent"]
   Sec --> Img2["Docker image + Cloud Run<br/>agents-cli manifest"]
   Lib --> Img0["Docker image<br/>standalone API"]
 ```

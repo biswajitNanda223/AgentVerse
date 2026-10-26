@@ -84,6 +84,7 @@ packages = ["src/{name}"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+asyncio_mode = "auto"
 ''',
     )
     write(

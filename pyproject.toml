@@ -33,17 +33,17 @@ select = ["E", "F", "I", "UP", "B", "SIM", "RUF", "S"]
 ignore = ["S101"]
 
 [tool.ruff.lint.isort]
-known-first-party = ["agentverse", "agentic_rag", "production_security", "event_worker"]
+known-first-party = ["system_one_triage", "agentverse", "agentic_rag", "production_security", "event_worker"]
 
 [tool.pytest.ini_options]
 addopts = "-q --strict-markers --import-mode=importlib"
 asyncio_mode = "auto"
-testpaths = ["packages/agentverse/tests", "agents/agentic_rag/tests", "agents/production_security/tests", "agents/event_worker/tests"]
+testpaths = ["packages/agentverse/tests", "agents/system_one_triage/tests", "agents/agentic_rag/tests", "agents/production_security/tests", "agents/event_worker/tests"]
 
 [tool.mypy]
 python_version = "3.11"
 strict = true
-packages = ["agentverse", "agentic_rag", "production_security", "event_worker"]
+packages = ["system_one_triage", "agentverse", "agentic_rag", "production_security", "event_worker"]
 
 [[tool.mypy.overrides]]
 module = ["numpy.*", "pytesseract.*", "PIL.*", "qdrant_client.*", "fitz.*", "pymupdf.*", "sentence_transformers.*", "aiokafka.*"]

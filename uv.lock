@@ -13,6 +13,7 @@ members = [
     "agentverse-agentic-rag",
     "agentverse-event-worker",
     "agentverse-production-security",
+    "agentverse-system-one-triage",
     "agentverse-workspace",
 ]
 
@@ -130,6 +131,17 @@ requires-dist = [
 name = "agentverse-production-security"
 version = "0.1.0"
 source = { editable = "agents/production_security" }
+dependencies = [
+    { name = "agentverse" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "agentverse", editable = "packages/agentverse" }]
+
+[[package]]
+name = "agentverse-system-one-triage"
+version = "0.1.0"
+source = { editable = "agents/system_one_triage" }
 dependencies = [
     { name = "agentverse" },
 ]

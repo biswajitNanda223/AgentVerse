@@ -14,6 +14,7 @@ class Citation:
     passage_id: str
     path: str  # human-readable breadcrumb
     probability: float
+    source: str | None = None  # file, and page for PDFs
 
 
 @dataclass(frozen=True)
@@ -47,7 +48,7 @@ class DecisionRagPipeline:
                 "I did not find evidence that answers this.", (), True, "low_relevance", result
             )
         citations = tuple(
-            Citation(p.node.id, p.node.breadcrumb(), round(p.last_probability, 3))
+            Citation(p.node.id, p.node.breadcrumb(), round(p.last_probability, 3), p.node.source)
             for p in result.passages
         )
         # Extractive answer: the best passage verbatim. A generator model would synthesise here,

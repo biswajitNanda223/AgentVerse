@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from decision_rag.corpus import CorpusTree
-from decision_rag.markdown_loader import load_markdown_corpus
+from decision_rag.loaders import load_markdown_corpus
 from decision_rag.sample_corpus import sample_tree
 
 
@@ -52,7 +52,7 @@ def test_markdown_loader_uses_folders_headings_and_paragraphs(tmp_path: Path) ->
 
     tree = load_markdown_corpus(tmp_path)
     titles = {n.title for n in tree.nodes.values()}
-    assert "guides" in titles and "(root)" in titles
+    assert "guides" in titles and tmp_path.name in titles
     assert "Rollback" in titles and "Overview" in titles
     texts = " ".join(p.text or "" for p in tree.passages())
     assert "kubectl" not in texts  # fenced code dropped
@@ -62,5 +62,5 @@ def test_markdown_loader_uses_folders_headings_and_paragraphs(tmp_path: Path) ->
 
 
 def test_markdown_loader_rejects_empty_folders(tmp_path: Path) -> None:
-    with pytest.raises(ValueError, match="no Markdown passages"):
+    with pytest.raises(ValueError, match="no Markdown or PDF passages"):
         load_markdown_corpus(tmp_path)

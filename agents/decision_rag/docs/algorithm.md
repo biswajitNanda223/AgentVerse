@@ -57,7 +57,9 @@ message trace in the [README](../README.md).
 ## Cost
 
 One decision-model call per level when a level fits in a context. With depth `d`, a query makes
-`d` calls (4 here), independent of corpus size. Latency is `d` times the model latency, plus the
+at most `d` calls (4 on the built-in corpus), independent of corpus size. A step with only one
+candidate needs no call: it inherits its parent's probability, because no new evidence was
+gathered (the trace shows `0 call(s)`). Latency is `d` times the model latency, plus the
 tournament rounds below on wide levels.
 
 ## The tournament for oversized candidate sets

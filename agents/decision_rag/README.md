@@ -110,7 +110,8 @@ sequenceDiagram
 ```
 
 Every level is **one joint judgment**: all candidates, one context, one decision-model call. A
-four-level corpus costs four calls however large it is, which is why the technique is fast. The
+four-level corpus costs at most four calls however large it is (a step with a single option needs
+no call at all), which is why the technique is fast. The
 pruning rules, including what happens when the model sees nothing relevant and when to abstain:
 
 ```mermaid
@@ -157,14 +158,17 @@ Output of the first command (real, from the offline stand-in):
   "citations": [
     {
       "path": "Messaging > Azure Event Hubs > Kafka compatibility > Passage 1",
+      "source": null,
       "probability": 0.95
     },
     {
       "path": "Messaging > Azure Event Hubs > Kafka compatibility > Passage 2",
+      "source": null,
       "probability": 0.947
     },
     {
       "path": "Messaging > Azure Event Hubs > Capture and retention > Passage 1",
+      "source": null,
       "probability": 0.479
     }
   ]
@@ -192,14 +196,14 @@ step 2: 9 candidates, 1 call(s)
        0.00  [document] ADK tools
        0.00  [document] A2A delegation
 
-step 3: 1 candidates, 1 call(s)
+step 3: 1 candidates, 0 call(s)
   KEEP 0.95  [section] When to dead-letter
 
 step 4: 2 candidates, 1 call(s)
   KEEP 0.95  [passage] Send a message to the dead-letter topic when re…
        0.00  [passage] Store the failure reason and attempt count with…
 
-4 decision-model call(s) in 3 ms
+3 decision-model call(s) in 1 ms
 ```
 
 The same run as a diagram (`--mermaid`). Green was kept, grey was pruned, gold is the answer,
@@ -224,8 +228,9 @@ Every diagram in this folder is also available as a rendered PNG and SVG in
 uv run python -m decision_rag --corpus docs "How is the system deployed?" --trace
 ```
 
-`--corpus` takes a folder of Markdown: folders become topics, files documents, `##` headings
-sections, paragraphs passages. Fenced code (including Mermaid) and hidden folders are skipped.
+`--corpus` takes a folder (or one file) of Markdown and PDF: folders become topics, files
+documents, `##` headings or bold PDF sub-headings sections, paragraphs passages. Fenced code
+(including Mermaid) and hidden folders are skipped.
 
 ## Use a real decision model (TypeSafe Jev)
 
@@ -262,16 +267,73 @@ flowchart LR
   class I0,I1,In,IP0,IP1,IPn,IV warn
 ```
 
+## Use Claude as the decision model
+
+```bash
+export ANTHROPIC_API_KEY=...                  # or an `ant auth login` profile; never commit a key
+export DECISION_RAG_BACKEND=claude            # model: claude-opus-5-5 by default
+uv run python -m decision_rag "..." --trace
+uv run python -m decision_rag.evaluate --suite project-slm
+```
+
+[`claude.py`](src/decision_rag/claude.py) uses the official Anthropic SDK. All candidates of a level
+go into **one request**, so Claude judges them in a shared context, and the reply is constrained to
+a JSON schema and validated again (every candidate scored once, each within 0 to 1). Change the
+model with `DECISION_RAG_CLAUDE_MODEL` (for example a cheaper model for a trial) and the effort with
+`DECISION_RAG_CLAUDE_EFFORT` (`low` by default, because a relevance score needs little reasoning).
+
+Be clear about what this is. Claude writes its scores as tokens; it is not a forward-pass decision
+model, so a call is slower and costlier than Jev and the numbers are self-reported estimates, not
+calibrated probabilities. It is a good way to try the technique and to set a baseline; calibrate
+thresholds on labelled data before trusting them. The adapter has been exercised only against a
+fake SDK client in the tests. **A live Claude run has not been done in this repository's
+development environment because no API key was available there**, so run the two commands above
+once with your key and read the trace before relying on it.
+
+## Sample data and PDF input
+
+[`data/project_slm`](data/project_slm) holds 60 scenarios from a Project SLM requirement list
+(Domains 1 to 7, as Markdown, one file per domain), and
+[`data/project_slm_pdf`](data/project_slm_pdf) holds the same text as a 6-page PDF. Only the
+supplied scenarios are included. Domain 8 was cut off in the source text and is omitted.
+
+```bash
+uv run python -m decision_rag --corpus agents/decision_rag/data/project_slm_pdf \
+  "How are unit prices masked for a site planning engineer?" --trace
+```
+
+PDF structure comes from font size and weight (large title = document, bold sub-heading =
+section, paragraph = passage), and each citation carries the page (`Project_SLM_Scenarios.pdf
+p.3`). Wrapped titles are merged and ligatures and line-end hyphens or slashes are repaired. Not
+handled: tables and images are not interpreted (table text is read as paragraphs), scanned PDFs
+need OCR first, and a scenario that straddles a page break becomes two passages. Rebuild the
+sample PDF with `python -m decision_rag.sample_pdf agents/decision_rag/data/project_slm <out.pdf>`.
+
+Result of the golden set over the scenarios, 13 questions with the offline stand-in (a plumbing
+check, not evidence about accuracy):
+
+```text
+suite              project-slm
+queries            13
+navigator Hit@1    0.85
+flat lexical Hit@1 0.92
+decision-model calls per query 2.8
+mean latency       1.4 ms
+```
+
+The architecture these scenarios describe is drawn in [docs/project-slm](../../docs/project-slm/README.md).
+
 ## Honest evaluation
 
 `python -m decision_rag.evaluate` compares navigation with a flat lexical retriever on a 10-query
 golden set over the built-in 17-passage corpus. Result with the offline stand-in:
 
 ```text
+suite              sample
 queries            10
 navigator Hit@1    0.90
 flat lexical Hit@1 1.00
-decision-model calls per query 4.0
+decision-model calls per query 3.1
 mean latency       0.3 ms
 ```
 
@@ -322,12 +384,15 @@ flowchart LR
 ```text
 src/decision_rag/
   corpus.py            CorpusTree: topic > document > section > passage, extractive descriptions
-  markdown_loader.py   build a tree from a folder of Markdown
   sample_corpus.py     built-in corpus + golden questions
   models.py            Candidate and the DecisionModel protocol
   navigator.py         beam navigation, tournament, trace (the algorithm)
   local.py             offline stand-in decision model (NOT a language model)
   jev.py               TypeSafe Jev adapter: joint or independent, noul questions only
+  claude.py            Claude adapter (Anthropic SDK): one structured request per level
+  loaders.py           folder, Markdown and PDF loaders (page-aware citations)
+  sample_pdf.py        build the sample PDF from Markdown
+  slm_golden.py        13 questions over the Project SLM scenarios
   pipeline.py          navigate, then answer or abstain; fails safe when the model is down
   mermaid.py           render a real trace as a diagram
   evaluate.py          golden-set harness vs a flat lexical retriever
@@ -341,7 +406,8 @@ docs/                  concepts, algorithm, Jev integration, evaluation, diagram
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `BACKEND` | `local` | `local` offline stand-in, or `jev` |
+| `BACKEND` | `local` | `local` offline stand-in, `jev`, or `claude` |
+| `CLAUDE_MODEL`, `CLAUDE_EFFORT` | `claude-opus-5-5`, `low` | model and effort for the `claude` backend |
 | `JUDGEMENT` | `joint` | `joint` one request per level; `independent` one per candidate (ablation) |
 | `API_KEY`, `BASE_URL`, `MODEL`, `TIMEOUT_SECONDS` | unset, TypeSafe, `jev-latest`, 10 | Jev connection |
 | `CORPUS_DIR` | unset | Markdown folder; unset uses the sample corpus |

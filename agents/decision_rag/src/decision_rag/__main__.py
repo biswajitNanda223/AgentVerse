@@ -50,7 +50,8 @@ async def main() -> None:
                 "reason": answer.reason,
                 "answer": answer.text,
                 "citations": [
-                    {"path": c.path, "probability": c.probability} for c in answer.citations
+                    {"path": c.path, "source": c.source, "probability": c.probability}
+                    for c in answer.citations
                 ],
             },
             indent=2,

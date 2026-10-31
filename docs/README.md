@@ -10,6 +10,7 @@
 | [Attachment playbook](attachment-engineering-playbook.md) | screenshot lesson → code → test traceability |
 | [One-shot solution](../agents/agentic_rag/README.md) | complete prompt-to-user vertical slice |
 | [Production AI security](../agents/production_security/README.md) | rollback-first agent, least-privilege tools, secure memory/cache, evals and runbooks |
+| [Project SLM architecture](project-slm/README.md) | ADK agent end to end, ADK Agent Engine advantages and risks, scenario traceability |
 
 Documentation changes are product changes. Update diagrams, commands, configuration and linked
 tests with the implementation in the same commit. Prefer relative links so GitHub and local

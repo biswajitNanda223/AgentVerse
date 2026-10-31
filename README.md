@@ -26,7 +26,8 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
-| Retrieve by navigating a corpus hierarchy with a decision model (DecisionRAG paper), with traces and diagrams | [DecisionRAG](agents/decision_rag/README.md) |
+| Retrieve by navigating a corpus hierarchy with a decision model (DecisionRAG paper), with Claude and Jev backends, PDF input and sample data | [DecisionRAG](agents/decision_rag/README.md) |
+| See the ADK agent end to end for the Project SLM scenarios, plus Agent Engine advantages and risks | [Project SLM architecture](docs/project-slm/README.md) |
 | Build with a System One model (TypeSafe Jev): typed fast decisions routing to an agent | [System One triage](agents/system_one_triage/README.md) |
 | Run an unattended agent on Kafka / Azure Event Hubs with Azure Blob results | [Event worker](agents/event_worker/README.md) |
 | Build a security-first agent with rollback, memory and evals | [Production AI security solution](agents/production_security/README.md) |

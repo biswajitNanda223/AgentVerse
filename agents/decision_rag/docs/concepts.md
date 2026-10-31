@@ -58,7 +58,7 @@ flowchart TD
 
 Most corpora already have structure: categories, document titles, sections, paragraphs. People use
 it to find things. DecisionRAG does the same, one decision per level, so the cost is the *depth*
-of the hierarchy (about four calls here) and not the number of passages.
+of the hierarchy (at most about four calls here) and not the number of passages.
 
 | Level | Candidates the model sees | What a good description contains |
 |---|---|---|

@@ -48,3 +48,26 @@ one call per level).
 `tests/test_navigator.py` pins the behaviours that make the technique work (one joint call per
 level, widening on no signal, tournament bounds, abstention). `tests/test_jev.py` pins the wire
 format against a mock transport, including that joint mode is exactly one request.
+
+## Evaluating with Claude (or Jev) on the Project SLM scenarios
+
+```bash
+export ANTHROPIC_API_KEY=...
+DECISION_RAG_BACKEND=claude uv run python -m decision_rag.evaluate --suite project-slm
+DECISION_RAG_BACKEND=claude uv run python -m decision_rag.evaluate            # built-in corpus
+```
+
+The suite asks 13 questions about the 60 scenarios (`slm_golden.py`) and counts a hit when the top
+passage belongs to the expected scenario. Expect roughly 2 to 4 model requests per question, each
+carrying one level's candidate descriptions (up to a few dozen short texts), so a full run is a few
+dozen small requests. Estimate the bill from your model's current price before running, and try a
+cheaper model first with `DECISION_RAG_CLAUDE_MODEL`.
+
+What to compare, and what not to conclude:
+
+- Compare the Claude run with the offline stand-in and the flat lexical baseline on the same
+  questions, and look at the traces of every miss.
+- Thirteen questions written by the same person who wrote the system is a smoke test. Build a
+  larger labelled set from real user questions before drawing conclusions.
+- Self-reported Claude scores are not calibrated: if abstention fires too often or never, tune
+  `MIN_PROBABILITY` and `ABSTAIN_BELOW` on held-out questions.

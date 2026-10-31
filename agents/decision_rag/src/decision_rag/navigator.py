@@ -122,7 +122,13 @@ class DecisionNavigator:
                 break
 
             step_started = perf_counter()
-            probabilities, calls = await self._judge(query, nodes)
+            if len(nodes) == 1:
+                # Only one option in the whole step: nothing to compare, so no model call. It
+                # inherits its parent's probability because no new evidence was gathered.
+                only = nodes[0]
+                probabilities, calls = {only.id: owners[only.id].last_probability}, 0
+            else:
+                probabilities, calls = await self._judge(query, nodes)
             total_calls += calls
 
             judged = sorted(

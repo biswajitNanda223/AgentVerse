@@ -32,7 +32,12 @@ def create_app(pipeline: DecisionRagPipeline | None = None) -> FastAPI:
             "abstained": answer.abstained,
             "reason": answer.reason,
             "citations": [
-                {"path": c.path, "passage_id": c.passage_id, "probability": c.probability}
+                {
+                    "path": c.path,
+                    "passage_id": c.passage_id,
+                    "probability": c.probability,
+                    "source": c.source,
+                }
                 for c in answer.citations
             ],
             "model_calls": nav.model_calls if nav else 0,

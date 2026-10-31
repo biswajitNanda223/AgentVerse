@@ -8,13 +8,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class DecisionRagSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="DECISION_RAG_", extra="ignore")
 
-    # "local" is an offline lexical stand-in; "jev" calls TypeSafe's hosted decision model.
-    backend: Literal["local", "jev"] = "local"
+    # "local" is an offline lexical stand-in; "jev" calls TypeSafe's hosted decision model;
+    # "claude" asks a Claude model to score all candidates of a level in one request.
+    backend: Literal["local", "jev", "claude"] = "local"
     judgement: Literal["joint", "independent"] = "joint"
     api_key: SecretStr | None = Field(default=None, repr=False)
     base_url: str = "https://api.typesafe.ai"
     model: str = "jev-latest"
     timeout_seconds: float = Field(default=10.0, gt=0, le=120)
+    claude_model: str = "claude-opus-5-5"
+    claude_effort: Literal["low", "medium", "high"] = "low"
     agent_model: str = "gemini-2.5-flash"
     corpus_dir: str | None = None  # Markdown folder; unset uses the built-in sample corpus
 

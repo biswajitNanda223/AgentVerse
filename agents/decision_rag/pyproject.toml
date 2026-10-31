@@ -9,7 +9,11 @@ description = "DecisionRAG: retrieval by navigating a corpus hierarchy with deci
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
 license = {text = "Apache-2.0"}
-dependencies = ["agentverse"]
+dependencies = [
+  "agentverse",
+  "anthropic>=1,<2",
+  "pymupdf>=1.26,<2",
+]
 
 [tool.uv.sources]
 agentverse = {workspace = true}

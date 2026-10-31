@@ -13,7 +13,8 @@ from dataclasses import dataclass, field
 
 ROOT_ID = "<corpus>"  # slugs contain only [a-z0-9-], so no node can collide with this
 LEVELS = ("corpus", "topic", "document", "section", "passage")
-Outline = Mapping[str, Mapping[str, Mapping[str, Sequence[str]]]]  # topic -> doc -> section -> text
+PassageSpec = str | tuple[str, str | None]  # text, or (text, source such as "file.pdf p.3")
+Outline = Mapping[str, Mapping[str, Mapping[str, Sequence[PassageSpec]]]]  # topic > doc > section
 
 
 def slug(text: str) -> str:
@@ -27,6 +28,7 @@ class Node:
     title: str
     description: str  # what this branch contains, shown to the decision model
     text: str | None = None  # full text, passages only
+    source: str | None = None  # where a passage came from, e.g. "deploy.md" or "spec.pdf p.3"
     children: list[Node] = field(default_factory=list)
     parent: Node | None = field(default=None, repr=False)
 
@@ -83,13 +85,16 @@ class CorpusTree:
                     section = _attach(
                         doc, "section", f"{doc.id}/{slug(section_title)}", section_title, ""
                     )
-                    for index, text in enumerate(passages, start=1):
+                    for index, spec in enumerate(passages, start=1):
+                        text, source = (spec, None) if isinstance(spec, str) else spec
                         passage = _attach(
                             section, "passage", f"{section.id}/{index}", f"Passage {index}", ""
                         )
                         passage.text = text
+                        passage.source = source
                         passage.description = _clip(text, 240)
-                    section.description = _clip(passages[0], 160) if passages else ""
+                    first = passages[0] if passages else ""
+                    section.description = _clip(first if isinstance(first, str) else first[0], 160)
                 doc.description = "Sections: " + "; ".join(
                     f"{sec.title} ({_clip(sec.description, 110)})" for sec in doc.children
                 )

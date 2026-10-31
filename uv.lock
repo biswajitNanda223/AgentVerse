@@ -11,6 +11,7 @@ resolution-markers = [
 members = [
     "agentverse",
     "agentverse-agentic-rag",
+    "agentverse-decision-rag",
     "agentverse-event-worker",
     "agentverse-production-security",
     "agentverse-system-one-triage",
@@ -101,6 +102,17 @@ provides-extras = ["rag", "ocr"]
 name = "agentverse-agentic-rag"
 version = "1.0.0"
 source = { editable = "agents/agentic_rag" }
+dependencies = [
+    { name = "agentverse" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "agentverse", editable = "packages/agentverse" }]
+
+[[package]]
+name = "agentverse-decision-rag"
+version = "0.1.0"
+source = { editable = "agents/decision_rag" }
 dependencies = [
     { name = "agentverse" },
 ]

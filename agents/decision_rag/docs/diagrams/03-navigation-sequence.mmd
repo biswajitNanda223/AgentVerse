@@ -1,0 +1,22 @@
+sequenceDiagram
+  autonumber
+  participant U as Caller
+  participant N as DecisionNavigator
+  participant T as CorpusTree
+  participant M as Decision model
+  U->>N: navigate(query)
+  loop one iteration per level (topic, document, section, passage)
+    N->>T: children of every branch still alive
+    T-->>N: candidates (breadcrumb + description each)
+    Note over N,M: ONE joint judgment: all candidates share one context
+    N->>M: judge(query, candidates)
+    M-->>N: P(relevant) for each candidate, comparable to each other
+    N->>N: keep top beam_width with p >= min_probability<br/>(none qualify: widen, keep top beam_width anyway)
+    N->>N: record StepTrace (kept and pruned candidates)
+  end
+  N->>N: rank surviving passages by geometric mean of path probabilities
+  alt best passage p below abstain_below, or none reached
+    N-->>U: abstained=true
+  else
+    N-->>U: top_k passages + citations + full trace
+  end

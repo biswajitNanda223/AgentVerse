@@ -1,0 +1,18 @@
+flowchart TD
+  Start["Candidates judged: p for each"] --> Any{"any p >= min_probability?"}
+  Any -->|"yes"| KeepQ["keep those that qualify"]
+  Any -->|"no signal"| Widen["WIDEN: keep top beam_width anyway<br/>do not commit to one arbitrary branch"]
+  KeepQ --> Cap["cap at beam_width, best first"]
+  Widen --> Next
+  Cap --> Next{"any kept branch has children?"}
+  Next -->|"yes"| Down["expand children: next step"]
+  Next -->|"no: all are passages"| Rank["rank passages by geometric mean<br/>of probabilities along the path"]
+  Rank --> Abst{"best passage p < abstain_below?"}
+  Abst -->|"yes"| No["abstain: no answer from weak evidence"]
+  Abst -->|"no"| Yes["return top_k passages with citations"]
+  classDef ok fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef bad fill:#fde2e2,stroke:#c0392b,color:#000
+  classDef mid fill:#fff3c4,stroke:#b8860b,color:#000
+  class Yes,KeepQ ok
+  class No bad
+  class Widen mid

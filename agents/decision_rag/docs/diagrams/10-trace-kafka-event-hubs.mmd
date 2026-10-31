@@ -1,0 +1,32 @@
+flowchart TD
+  n0(["Query: How do Kafka clients authenticate to Event Hubs?<br/>4 joint judgments, 4 levels"])
+  n1["Messaging<br/>topic · p=0.95"]
+  n2["Retrieval<br/>topic · p=0.00"]
+  n3["Agents<br/>topic · p=0.00"]
+  n4["Kafka consumer groups<br/>document · p=0.13"]
+  n5["Azure Event Hubs<br/>document · p=0.95"]
+  n6["Dead-letter queues<br/>document · p=0.00"]
+  n7["Kafka compatibility<br/>section · p=0.95"]
+  n8["Capture and retention<br/>section · p=0.46"]
+  n9["Event Hubs exposes a Kafka endpoint o…<br/>passage · p=0.95"]
+  n10["Each Kafka topic maps to an event hub…<br/>passage · p=0.95"]
+  n11["Event Hubs Capture writes streaming e…<br/>passage · p=0.48"]
+  n0 --> n1
+  n0 -.-> n2
+  n0 -.-> n3
+  n1 -.-> n4
+  n1 --> n5
+  n1 -.-> n6
+  n5 --> n7
+  n5 --> n8
+  n7 --> n9
+  n7 --> n10
+  n8 --> n11
+  classDef kept fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef pruned fill:#eeeeee,stroke:#9e9e9e,color:#555
+  classDef answer fill:#fff3c4,stroke:#b8860b,stroke-width:3px,color:#000
+  classDef root fill:#dbe8ff,stroke:#2f5fb3,color:#000
+  class n0 root
+  class n1,n5,n7,n8 kept
+  class n2,n3,n4,n6 pruned
+  class n9,n10,n11 answer

@@ -1,0 +1,16 @@
+flowchart TD
+  All["Oversized candidate set<br/>n > max_candidates_per_call"] --> Split["Split into chunks<br/>each fits one context"]
+  Split --> J1["Chunk 1: joint judgment"]
+  Split --> J2["Chunk 2: joint judgment"]
+  Split --> Jk["Chunk k: joint judgment"]
+  J1 -->|"best few advance"| Surv["Survivors from every chunk"]
+  J2 -->|"best few advance"| Surv
+  Jk -->|"best few advance"| Surv
+  Surv --> Q{"survivors fit<br/>one context?"}
+  Q -->|"no"| Split
+  Q -->|"yes"| Final["FINAL joint judgment<br/>probabilities used for pruning"]
+  Final --> Out["kept branches (others recorded as 'pruned early')"]
+  classDef step fill:#dbe8ff,stroke:#2f5fb3,color:#000
+  classDef final fill:#d7f0dd,stroke:#2e7d32,color:#000
+  class Split,J1,J2,Jk,Surv step
+  class Final,Out final

@@ -1,0 +1,20 @@
+flowchart LR
+  subgraph Joint["Joint judgment (default): comparable probabilities"]
+    direction TB
+    JS["state = query + ALL candidates<br/>C0 ... Cn in one context"] --> JR["ONE request<br/>n yes/no questions in parallel"]
+    JR --> JP["p0 ... pn<br/>every candidate was seen<br/>next to every other"]
+  end
+  subgraph Indep["Independent judgment (ablation): n separate contexts"]
+    direction TB
+    I0["request 0: query + C0 only"] --> IP0["p0"]
+    I1["request 1: query + C1 only"] --> IP1["p1"]
+    In["request n: query + Cn only"] --> IPn["pn"]
+  end
+  JP --> JV["Rank and prune on p<br/>differences are meaningful"]
+  IP0 --> IV["Rank and prune on p<br/>each p was judged in isolation,<br/>so scales can drift"]
+  IP1 --> IV
+  IPn --> IV
+  classDef good fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef warn fill:#fff3c4,stroke:#b8860b,color:#000
+  class JS,JR,JP,JV good
+  class I0,I1,In,IP0,IP1,IPn,IV warn

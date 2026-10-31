@@ -1,0 +1,18 @@
+flowchart TB
+  subgraph Classical["(a) Classical retrieval"]
+    direction LR
+    C1[("Large corpus")] -->|"all passages"| R1["Simple retriever<br/>BM25 or fixed embeddings<br/>BOTTLENECK"]
+    R1 -->|"only what it found"| G1["Powerful LLM<br/>cannot recover what<br/>the retriever missed"]
+  end
+  subgraph Decision["(b) DecisionRAG"]
+    direction LR
+    C2[("Large corpus")] -->|"topics, documents,<br/>sections, passages"| D2["Decision model<br/>as capable as the generator<br/>judges branches jointly"]
+    D2 -->|"best passages + path"| G2["Powerful LLM<br/>answers from evidence"]
+  end
+  Classical ~~~ Decision
+  classDef weak fill:#fde2e2,stroke:#c0392b,color:#000
+  classDef strong fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef store fill:#dbe8ff,stroke:#2f5fb3,color:#000
+  class R1 weak
+  class D2,G1,G2 strong
+  class C1,C2 store

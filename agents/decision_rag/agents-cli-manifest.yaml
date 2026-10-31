@@ -1,0 +1,8 @@
+name: agentverse-decision-rag
+description: DecisionRAG: retrieval by navigating a corpus hierarchy with decision models instead of searching an index
+language: python
+agent:
+  module: decision_rag.adk_agent
+  variable: root_agent
+deployment:
+  target: cloud_run

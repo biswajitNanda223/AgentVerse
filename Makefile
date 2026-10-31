@@ -9,7 +9,7 @@ lint:
 typecheck:
 	uv run mypy
 test:
-	uv run pytest --cov=agentverse --cov=system_one_triage --cov=agentic_rag --cov=production_security --cov=event_worker --cov-report=term-missing
+	uv run pytest --cov=agentverse --cov=decision_rag --cov=system_one_triage --cov=agentic_rag --cov=production_security --cov=event_worker --cov-report=term-missing
 eval:
 	uv run python agents/production_security/evals/run.py
 docs:

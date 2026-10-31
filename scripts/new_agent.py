@@ -42,7 +42,7 @@ def scaffold(name: str, description: str) -> None:
     pending: dict[Path, str] = {}
     pyproject = ROOT / "pyproject.toml"
     edited(pyproject, 'known-first-party = ["', f'known-first-party = ["{name}", "', pending)
-    edited(pyproject, 'packages = ["agentverse"', f'packages = ["{name}", "agentverse"', pending)
+    edited(pyproject, 'packages = ["', f'packages = ["{name}", "', pending)
     edited(
         pyproject,
         '"agents/agentic_rag/tests"',

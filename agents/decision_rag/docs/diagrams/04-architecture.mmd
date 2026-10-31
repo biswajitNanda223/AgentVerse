@@ -1,0 +1,33 @@
+flowchart LR
+  subgraph Entry["Entry points"]
+    CLI["python -m decision_rag<br/>--trace --mermaid"]
+    Tool["ADK tool<br/>navigate_corpus"]
+    Eval["python -m decision_rag.evaluate"]
+  end
+  subgraph Core["decision_rag package"]
+    Factory["factory + settings<br/>DECISION_RAG_*"]
+    Pipe["DecisionRagPipeline<br/>navigate, then answer or abstain"]
+    Nav["DecisionNavigator<br/>beam search, tournament,<br/>trace"]
+    Tree["CorpusTree<br/>topic, document, section, passage"]
+    Mer["trace_to_mermaid"]
+  end
+  subgraph Sources["Corpus sources"]
+    Sample["built-in sample corpus"]
+    Md["Markdown folder loader<br/>folders, headings, paragraphs"]
+  end
+  Port{{"DecisionModel protocol<br/>judge(query, candidates) -> P(relevant) each"}}
+  Lex["LexicalDecisionModel<br/>offline stand-in, not a language model"]
+  Jev["JevDecisionModel<br/>joint or independent<br/>one noul question per candidate"]
+  Ext[("TypeSafe Jev<br/>POST /v1/systemone")]
+  CLI --> Factory
+  Tool --> Factory
+  Eval --> Factory
+  Factory --> Pipe --> Nav
+  Nav --> Tree
+  Sample --> Tree
+  Md --> Tree
+  Nav --> Port
+  Port -.->|"default, no key"| Lex
+  Port -.->|"DECISION_RAG_BACKEND=jev"| Jev
+  Jev --> Ext
+  Nav --> Mer

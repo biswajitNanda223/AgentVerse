@@ -26,6 +26,7 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Retrieve by navigating a corpus hierarchy with a decision model (DecisionRAG paper), with traces and diagrams | [DecisionRAG](agents/decision_rag/README.md) |
 | Build with a System One model (TypeSafe Jev): typed fast decisions routing to an agent | [System One triage](agents/system_one_triage/README.md) |
 | Run an unattended agent on Kafka / Azure Event Hubs with Azure Blob results | [Event worker](agents/event_worker/README.md) |
 | Build a security-first agent with rollback, memory and evals | [Production AI security solution](agents/production_security/README.md) |
@@ -54,6 +55,8 @@ together.
   idempotent Azure Blob results, retries, dead-letter topic and commit-after-handle delivery.
 - **System One models:** typed, calibrated fast decisions (choice, score, probability) from
   TypeSafe Jev routing work in plain code, with System Two escalation and fail-safe fallback.
+- **Decision-model retrieval:** DecisionRAG navigates topic > document > section > passage with
+  joint decision-model judgments (one call per level), traces and abstention, instead of an index.
 - **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
   Kubernetes security contexts, HPA and PodDisruptionBudget.
 
@@ -162,7 +165,8 @@ AgentVerse/                       uv workspace root (pyproject.toml + single uv.
 │   ├── agentic_rag/              complete prompt-to-user vertical solution
 │   ├── production_security/      security-first agent, memory, cache, evals and runbooks
 │   ├── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
-│   └── system_one_triage/        System One (Jev) typed decisions routing tickets to an ADK agent
+│   ├── system_one_triage/        System One (Jev) typed decisions routing tickets to an ADK agent
+│   └── decision_rag/             DecisionRAG: navigate topic > document > section > passage with a decision model
 ├── examples/                     runnable RAG, chunking and production patterns
 ├── docs/                         architecture and operational guides
 ├── deploy/                       shared Compose, OTel and Kubernetes assets
@@ -184,6 +188,9 @@ flowchart LR
   Root --> ST["agents/system_one_triage"]
   ST -->|"workspace dependency"| Lib
   ST --> Img4["Docker image + Cloud Run<br/>System One router + ADK agent"]
+  Root --> DR["agents/decision_rag"]
+  DR -->|"workspace dependency"| Lib
+  DR --> Img5["Docker image + Cloud Run<br/>navigation API + ADK agent"]
   Sec --> Img2["Docker image + Cloud Run<br/>agents-cli manifest"]
   Lib --> Img0["Docker image<br/>standalone API"]
 ```

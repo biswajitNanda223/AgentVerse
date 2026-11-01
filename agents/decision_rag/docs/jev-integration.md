@@ -29,6 +29,24 @@ documented fields, which keeps the unverified surface as small as possible.
 each question is read as a probability from `noul` (a `probability` alias is also accepted),
 either at the top level or under an `answers` key, and must be a number within 0 to 1.
 
+## Choice reranking (optional stage 3)
+
+`choose()` sends one `choice` question whose options are the top r passages:
+
+```json
+{
+  "model": "jev-latest",
+  "state": {"query": "..."},
+  "questions": {"pick": {"type": "choice", "instructions": "Which candidate best answers the query?",
+                         "criteria": {"C0": "...", "C1": "...", "C2": "..."}}}
+}
+```
+
+and reads `answers.pick.probabilities` as a label to probability map. **This request shape and
+answer shape are unverified**: they come from secondary write-ups, not TypeSafe's reference, so the
+adapter fails closed on anything else and the rerank stays off by default. The yes/no stages use
+only the documented `noul` type.
+
 ## Joint vs independent
 
 | Mode | Requests per level | Context per question | Use |
@@ -45,6 +63,7 @@ Independent mode costs `n` requests per level instead of 1, so use it only to ev
 | endpoint, bearer auth, `model`, `state`, `questions` keyed by name | from TypeSafe's published reference |
 | `noul` question as `{"type": "noul", "instructions": ...}` | from TypeSafe's published reference |
 | a probability in `noul` (or `probability`), envelope top-level or under `answers` | from secondary write-ups; not confirmed against the official page |
+| `choice` question with `criteria` as a label to text map, answer `probabilities` map (used only for the optional rerank) | unverified; fails closed |
 | state as a JSON object with `query` and `candidates` | allowed (state may be text or JSON); the particular field names are this example's choice |
 | model id `jev-latest` | an example id; pin the current one from TypeSafe |
 
@@ -70,6 +89,6 @@ instead of guessing.
 ## Cost and privacy
 
 Joint mode sends the query plus all candidate descriptions of a level (up to
-`MAX_CANDIDATES_PER_CALL`) in one request, so four requests per query on a four-level corpus.
+`MAX_CANDIDATES_PER_CALL`) in one request, so two to three requests per query (plus one for the optional rerank).
 Descriptions and passage text leave your boundary; do not use a hosted model on data you could
 not send to any other API.

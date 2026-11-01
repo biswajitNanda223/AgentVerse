@@ -37,11 +37,15 @@ def build_tree(settings: DecisionRagSettings) -> CorpusTree:
 
 def build_config(settings: DecisionRagSettings) -> NavigationConfig:
     return NavigationConfig(
-        beam_width=settings.beam_width,
+        keep_topics=settings.keep_topics,
+        keep_documents=settings.keep_documents,
+        keep_sections=settings.keep_sections,
+        keep_passages=settings.keep_passages,
+        skip_sections=settings.skip_sections,
+        rerank=settings.rerank,
         min_probability=settings.min_probability,
         abstain_below=settings.abstain_below,
         max_candidates_per_call=settings.max_candidates_per_call,
-        top_k=settings.top_k,
     )
 
 

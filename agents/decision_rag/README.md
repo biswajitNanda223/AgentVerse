@@ -6,11 +6,15 @@ Decision Models"** (Wan, Jünger, Du, Liu, Krishnan, Weinberger; arXiv:2610.3586
 walks the corpus the way a person browses a library: from broad topics, to documents, to
 sections, to the individual passage, deciding at each level which branches are worth opening.
 
-> **Read this first.** This folder was written from the title, abstract, Figure 1 and the first
-> pages of the paper (the parts available when it was built), not from the full text. The core
-> idea below is the paper's. Anything else (beam search, the tournament for oversized candidate
-> sets, geometric-mean ranking, thresholds) is **this example's own design** and is labelled as
-> such. The paper's reported numbers are quoted, not reproduced: no benchmark was run here.
+> **Read this first.** This folder follows the paper's pipeline as shown in its Figure 2 and
+> abstract: yes/no *document screening* (keep top k), yes/no *passage scoring* over only the kept
+> documents (keep top r), and an *optional choice reranking* (one multiple-choice question over the
+> top r). It was written from the title, abstract, Figures 1 and 2, and a related-work excerpt, **not
+> from the full text**, so unseen details (default k and r, prompts, tree construction per dataset)
+> are this example's choices. Things added beyond the figure are labelled "this example": the
+> tournament for candidate sets larger than a context, abstaining on weak evidence, an optional
+> probability floor, and skipping the model call when a step has one option. The paper's numbers are
+> quoted, not reproduced: no benchmark was run here.
 
 ```mermaid
 flowchart TB
@@ -44,16 +48,46 @@ flowchart TB
    relevance estimates *comparable*. The paper reports this contributes up to 7.7 points over
    judging them independently. This folder lets you test that on your data
    ([joint vs independent](docs/jev-integration.md)).
-4. **Navigate the structure the corpus already has.** Topics, document titles, sections,
-   passages. One decision per level, so latency is a handful of fast calls, not an agentic loop of
-   generated tokens.
+4. **Navigate the structure the corpus already has, in three stages.** Screen documents (keep
+   k), score the passages of the kept documents only (keep r; pruned documents are never
+   expanded), then optionally rerank the top r with one multiple-choice question. Latency is a
+   handful of fast calls, not an agentic loop of generated tokens.
 5. **No first-stage retriever, no precomputed index, no task-specific training.**
 
 Paper-reported results (not reproduced here): +13.8 R@1 over dense retrieval with an 8B reranker on
 MultiDoc2Dial, +17.4 Hit@1 on Natural Questions, and 0.7 to 1.8 seconds per query across four
-benchmarks including a 2.68 million paragraph Wikipedia corpus.
+benchmarks including a 2.68 million paragraph Wikipedia corpus. A further step is reported to raise
+R@1 on MultiDoc2Dial to 60.7, 5.7 points above the best compared published task-trained retriever
+(the excerpt this is taken from starts mid-sentence, so which configuration that is, most likely
+the one with reranking, is not confirmed here).
 
 ## How it works
+
+The pipeline, as drawn in the paper's Figure 2(c):
+
+```mermaid
+flowchart LR
+  Q(["Query q"]) --> C[("Corpus")]
+  C -.->|"optional higher-order levels<br/>e.g. categories: keep top few"| Docs
+  C --> Docs["Documents D1 ... DN<br/>1 DOCUMENT SCREENING<br/>one yes/no question per document<br/>judged together in ONE forward pass<br/>keep top k"]
+  Docs -->|"kept documents only"| Pass["Passages of the kept documents<br/>2 PASSAGE SCORING<br/>one yes/no question per passage<br/>one forward pass<br/>keep top r"]
+  Docs -.->|"pruned documents:<br/>never expanded, never scored"| Gone["pruned"]
+  Pass --> Top["Top r passages"]
+  Top -->|"optional"| Choice["3 CHOICE RERANKING<br/>ONE multiple-choice question<br/>options = the r passages<br/>final ranking"]
+  Top -->|"without reranking"| Gen
+  Choice --> Gen["Generator LLM<br/>answers from the passages"]
+  classDef stage fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef opt fill:#fff3c4,stroke:#b8860b,color:#000
+  classDef gone fill:#eeeeee,stroke:#9e9e9e,color:#777,stroke-dasharray:4 3
+  classDef io fill:#dbe8ff,stroke:#2f5fb3,color:#000
+  class Docs,Pass stage
+  class Choice opt
+  class Gone gone
+  class Q,C,Top,Gen io
+```
+
+The tree it walks (sections are folded away by default, so passage scoring sees passages
+directly, with the section title kept as context in each candidate):
 
 ```mermaid
 flowchart TD
@@ -92,47 +126,52 @@ sequenceDiagram
   participant T as CorpusTree
   participant M as Decision model
   U->>N: navigate(query)
-  loop one iteration per level (topic, document, section, passage)
-    N->>T: children of every branch still alive
-    T-->>N: candidates (breadcrumb + description each)
+  loop each stage: optional categories, then documents, then passages
+    N->>T: candidates under the branches still alive (sections folded away)
+    T-->>N: candidates with breadcrumb + description
     Note over N,M: ONE joint judgment: all candidates share one context
     N->>M: judge(query, candidates)
-    M-->>N: P(relevant) for each candidate, comparable to each other
-    N->>N: keep top beam_width with p >= min_probability<br/>(none qualify: widen, keep top beam_width anyway)
+    M-->>N: P(yes) for each candidate, comparable to each other
+    N->>N: keep top k documents (top r passages at the last stage)<br/>pruned branches are never expanded
     N->>N: record StepTrace (kept and pruned candidates)
   end
-  N->>N: rank surviving passages by geometric mean of path probabilities
-  alt best passage p below abstain_below, or none reached
+  opt choice reranking enabled
+    N->>M: choose(query, top r passages): ONE multiple-choice question
+    M-->>N: probability distribution over the r passages
+  end
+  alt best passage P(yes) below abstain_below, or none reached
     N-->>U: abstained=true
   else
-    N-->>U: top_k passages + citations + full trace
+    N-->>U: passages in final order + citations + full trace
   end
 ```
 
-Every level is **one joint judgment**: all candidates, one context, one decision-model call. A
-four-level corpus costs at most four calls however large it is (a step with a single option needs
-no call at all), which is why the technique is fast. The
-pruning rules, including what happens when the model sees nothing relevant and when to abstain:
+Every stage is **one joint judgment**: all candidates, one context, one decision-model call. A
+query costs one call per stage (two or three, plus one for the optional rerank) however large the
+corpus is; a step with a single option needs no call at all. That is why the technique is fast.
+The keep, rerank and abstain rules:
 
 ```mermaid
 flowchart TD
-  Start["Candidates judged: p for each"] --> Any{"any p >= min_probability?"}
-  Any -->|"yes"| KeepQ["keep those that qualify"]
-  Any -->|"no signal"| Widen["WIDEN: keep top beam_width anyway<br/>do not commit to one arbitrary branch"]
-  KeepQ --> Cap["cap at beam_width, best first"]
+  Start["Stage candidates judged: P(yes) for each"] --> Floor{"optional floor set<br/>and nobody reaches it?"}
+  Floor -->|"yes: no signal"| Widen["WIDEN: keep the top few anyway<br/>do not commit to one arbitrary branch"]
+  Floor -->|"no"| Top["keep the top k documents<br/>(top r passages at the last stage)"]
   Widen --> Next
-  Cap --> Next{"any kept branch has children?"}
-  Next -->|"yes"| Down["expand children: next step"]
-  Next -->|"no: all are passages"| Rank["rank passages by geometric mean<br/>of probabilities along the path"]
-  Rank --> Abst{"best passage p < abstain_below?"}
+  Top --> Next{"stage was passages?"}
+  Next -->|"no"| Down["expand ONLY the kept branches<br/>pruned ones are never scored"]
+  Next -->|"yes"| Rerank{"choice reranking on?"}
+  Rerank -->|"yes"| Choose["one multiple-choice question over the r passages<br/>order by choice probability"]
+  Rerank -->|"no"| Order["order by passage P(yes)"]
+  Choose --> Abst
+  Order --> Abst{"best passage P(yes) < abstain_below?"}
   Abst -->|"yes"| No["abstain: no answer from weak evidence"]
-  Abst -->|"no"| Yes["return top_k passages with citations"]
+  Abst -->|"no"| Yes["return passages with citations"]
   classDef ok fill:#d7f0dd,stroke:#2e7d32,color:#000
   classDef bad fill:#fde2e2,stroke:#c0392b,color:#000
   classDef mid fill:#fff3c4,stroke:#b8860b,color:#000
-  class Yes,KeepQ ok
+  class Yes,Top ok
   class No bad
-  class Widen mid
+  class Widen,Choose mid
 ```
 
 ## Quick start
@@ -164,12 +203,12 @@ Output of the first command (real, from the offline stand-in):
     {
       "path": "Messaging > Azure Event Hubs > Kafka compatibility > Passage 2",
       "source": null,
-      "probability": 0.947
+      "probability": 0.949
     },
     {
       "path": "Messaging > Azure Event Hubs > Capture and retention > Passage 1",
       "source": null,
-      "probability": 0.479
+      "probability": 0.548
     }
   ]
 }
@@ -177,41 +216,79 @@ Output of the first command (real, from the offline stand-in):
 
 ### Watch it navigate
 
-`--trace` prints every candidate the model judged at each level:
+`--trace` prints every candidate the model judged at each stage:
 
 ```text
-step 1: 3 candidates, 1 call(s)
+step 1 (topic stage): 3 candidates, 1 call(s)
   KEEP 0.00  [topic] Messaging
   KEEP 0.00  [topic] Retrieval
-  KEEP 0.00  [topic] Agents
+       0.00  [topic] Agents
 
-step 2: 9 candidates, 1 call(s)
+step 2 (document stage): 6 candidates, 1 call(s)
   KEEP 0.95  [document] Dead-letter queues
-       0.19  [document] Human approval
-       0.13  [document] Kafka consumer groups
-       0.00  [document] Azure Event Hubs
+  KEEP 0.15  [document] Kafka consumer groups
+  KEEP 0.00  [document] Azure Event Hubs
        0.00  [document] Hybrid retrieval
        0.00  [document] Chunking strategies
        0.00  [document] GraphRAG
-       0.00  [document] ADK tools
-       0.00  [document] A2A delegation
 
-step 3: 1 candidates, 0 call(s)
-  KEEP 0.95  [section] When to dead-letter
-
-step 4: 2 candidates, 1 call(s)
+step 3 (passage stage): 8 candidates, 1 call(s)
   KEEP 0.95  [passage] Send a message to the dead-letter topic when re…
-       0.00  [passage] Store the failure reason and attempt count with…
+  KEEP 0.14  [passage] A consumer commits the offset of the next messa…
+  KEEP 0.00  [passage] Store the failure reason and attempt count with…
+       0.00  [passage] A consumer group splits a topic's partitions be…
+       0.00  [passage] Adding consumers beyond the number of partition…
+       0.00  [passage] Event Hubs exposes a Kafka endpoint on port 909…
+       0.00  [passage] Each Kafka topic maps to an event hub inside th…
+       0.00  [passage] Event Hubs Capture writes streaming events to A…
 
 3 decision-model call(s) in 1 ms
 ```
 
 The same run as a diagram (`--mermaid`). Green was kept, grey was pruned, gold is the answer,
-dotted edges are pruned branches. Note step 1: no topic looked relevant (`p=0.00`), so the
-navigator **widened the beam** and kept all three instead of betting on one; the joint judgment at
-the document level then found the right branch.
+dotted edges are pruned branches. The lexical stand-in saw nothing relevant at the topic level
+(`p=0.00` for every topic), so the top-k rule kept two topics anyway; the document stage then found
+"Dead-letter queues", and only the passages of the kept documents were scored.
 
 ![Navigation trace: poison message](docs/images/11-trace-dead-letter.png)
+
+With the optional choice rerank on (`DECISION_RAG_RERANK=true`) a last stage asks one
+multiple-choice question over the top r passages. Each passage shows its rank, its own yes/no
+probability and its choice probability:
+
+```text
+step 1 (topic stage): 3 candidates, 1 call(s)
+  KEEP 0.95  [topic] Messaging
+  KEEP 0.00  [topic] Retrieval
+       0.00  [topic] Agents
+
+step 2 (document stage): 6 candidates, 1 call(s)
+  KEEP 0.95  [document] Azure Event Hubs
+  KEEP 0.14  [document] Kafka consumer groups
+  KEEP 0.00  [document] Dead-letter queues
+       0.00  [document] Hybrid retrieval
+       0.00  [document] Chunking strategies
+       0.00  [document] GraphRAG
+
+step 3 (passage stage): 8 candidates, 1 call(s)
+  KEEP 0.95  [passage] Event Hubs exposes a Kafka endpoint on port 909…
+  KEEP 0.95  [passage] Each Kafka topic maps to an event hub inside th…
+  KEEP 0.55  [passage] Event Hubs Capture writes streaming events to A…
+       0.15  [passage] Adding consumers beyond the number of partition…
+       0.14  [passage] A consumer group splits a topic's partitions be…
+       0.13  [passage] A consumer commits the offset of the next messa…
+       0.00  [passage] Send a message to the dead-letter topic when re…
+       0.00  [passage] Store the failure reason and attempt count with…
+
+step 4 (choice rerank): 3 candidates, 1 call(s)
+  KEEP 0.47  [passage] Event Hubs exposes a Kafka endpoint on port 909…
+  KEEP 0.46  [passage] Each Kafka topic maps to an event hub inside th…
+  KEEP 0.06  [passage] Event Hubs Capture writes streaming events to A…
+
+4 decision-model call(s) in 1 ms
+```
+
+![Navigation trace with choice reranking](docs/images/13-trace-with-choice-rerank.png)
 
 A confident run, and one that abstains:
 
@@ -315,10 +392,21 @@ check, not evidence about accuracy):
 ```text
 suite              project-slm
 queries            13
+navigator Hit@1    0.77
+flat lexical Hit@1 0.92
+decision-model calls per query 2.0
+mean latency       3.7 ms
+```
+
+The same questions with the optional choice rerank on (`DECISION_RAG_RERANK=true`):
+
+```text
+suite              project-slm
+queries            13
 navigator Hit@1    0.85
 flat lexical Hit@1 0.92
-decision-model calls per query 2.8
-mean latency       1.4 ms
+decision-model calls per query 3.0
+mean latency       3.8 ms
 ```
 
 The architecture these scenarios describe is drawn in [docs/project-slm](../../docs/project-slm/README.md).
@@ -331,10 +419,10 @@ golden set over the built-in 17-passage corpus. Result with the offline stand-in
 ```text
 suite              sample
 queries            10
-navigator Hit@1    0.90
+navigator Hit@1    1.00
 flat lexical Hit@1 1.00
-decision-model calls per query 3.1
-mean latency       0.3 ms
+decision-model calls per query 3.0
+mean latency       0.5 ms
 ```
 
 **This is a plumbing check, not evidence about DecisionRAG.** The stand-in matches words, so it
@@ -355,7 +443,7 @@ flowchart LR
   subgraph Core["decision_rag package"]
     Factory["factory + settings<br/>DECISION_RAG_*"]
     Pipe["DecisionRagPipeline<br/>navigate, then answer or abstain"]
-    Nav["DecisionNavigator<br/>beam search, tournament,<br/>trace"]
+    Nav["DecisionNavigator<br/>screen documents, score passages,<br/>optional choice rerank, trace"]
     Tree["CorpusTree<br/>topic, document, section, passage"]
     Mer["trace_to_mermaid"]
   end
@@ -363,7 +451,7 @@ flowchart LR
     Sample["built-in sample corpus"]
     Md["Markdown folder loader<br/>folders, headings, paragraphs"]
   end
-  Port{{"DecisionModel protocol<br/>judge(query, candidates) -> P(relevant) each"}}
+  Port{{"DecisionModel protocol<br/>judge(query, candidates) -> P(yes) each<br/>ChoiceModel: choose(...) -> distribution"}}
   Lex["LexicalDecisionModel<br/>offline stand-in, not a language model"]
   Jev["JevDecisionModel<br/>joint or independent<br/>one noul question per candidate"]
   Ext[("TypeSafe Jev<br/>POST /v1/systemone")]
@@ -386,7 +474,7 @@ src/decision_rag/
   corpus.py            CorpusTree: topic > document > section > passage, extractive descriptions
   sample_corpus.py     built-in corpus + golden questions
   models.py            Candidate and the DecisionModel protocol
-  navigator.py         beam navigation, tournament, trace (the algorithm)
+  navigator.py         screen documents, score passages, optional choice rerank, trace
   local.py             offline stand-in decision model (NOT a language model)
   jev.py               TypeSafe Jev adapter: joint or independent, noul questions only
   claude.py            Claude adapter (Anthropic SDK): one structured request per level
@@ -411,11 +499,14 @@ docs/                  concepts, algorithm, Jev integration, evaluation, diagram
 | `JUDGEMENT` | `joint` | `joint` one request per level; `independent` one per candidate (ablation) |
 | `API_KEY`, `BASE_URL`, `MODEL`, `TIMEOUT_SECONDS` | unset, TypeSafe, `jev-latest`, 10 | Jev connection |
 | `CORPUS_DIR` | unset | Markdown folder; unset uses the sample corpus |
-| `BEAM_WIDTH` | 3 | branches kept per level |
-| `MIN_PROBABILITY` | 0.2 | keep a candidate only if at least this likely relevant |
+| `KEEP_TOPICS` | 2 | higher-order levels (categories) kept |
+| `KEEP_DOCUMENTS` | 3 | **k**: documents kept after screening |
+| `KEEP_PASSAGES` | 3 | **r**: passages kept after scoring (and reranked) |
+| `KEEP_SECTIONS`, `SKIP_SECTIONS` | 3, `true` | sections are folded away by default (paper layout: documents then passages) |
+| `RERANK` | `false` | optional choice reranking over the top r (needs a model with `choose`) |
+| `MIN_PROBABILITY` | 0 | this example: optional floor on P(yes); 0 is pure top-k as in the figure |
 | `ABSTAIN_BELOW` | 0.3 | best passage under this probability: abstain |
 | `MAX_CANDIDATES_PER_CALL` | 40 | context budget; more candidates run as a tournament |
-| `TOP_K` | 3 | passages returned |
 
 ## Safety and limits
 
@@ -427,7 +518,7 @@ docs/                  concepts, algorithm, Jev integration, evaluation, diagram
   instructions found in it.
 - **Navigation can dead-end on weak titles.** If a topic or document description does not mention
   what the query needs, the right branch may score low and be pruned. Better descriptions, a
-  wider beam, or a stronger decision model are the fixes; the trace shows where it happened.
+  larger k, or a stronger decision model are the fixes; the trace shows where it happened.
 - **No ingestion index to maintain,** but quality depends on the corpus having meaningful
   structure (titles, headings). A flat pile of unlabelled text is a poor fit.
 - Ticket or document text sent to a hosted decision model leaves your boundary. Do not send data

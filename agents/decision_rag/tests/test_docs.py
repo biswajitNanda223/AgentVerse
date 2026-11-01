@@ -38,6 +38,8 @@ def test_readme_image_links_resolve() -> None:
 
 
 def test_docs_state_the_paper_scope_caveat() -> None:
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    raw = (ROOT / "README.md").read_text(encoding="utf-8").replace("**", "").replace("\n> ", "\n")
+    readme = " ".join(raw.split())
     assert "not from the full text" in readme
-    assert "own design" in readme
+    assert "this example" in readme.lower()
+    assert "Figure 2" in readme

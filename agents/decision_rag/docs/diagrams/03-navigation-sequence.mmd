@@ -5,18 +5,21 @@ sequenceDiagram
   participant T as CorpusTree
   participant M as Decision model
   U->>N: navigate(query)
-  loop one iteration per level (topic, document, section, passage)
-    N->>T: children of every branch still alive
-    T-->>N: candidates (breadcrumb + description each)
+  loop each stage: optional categories, then documents, then passages
+    N->>T: candidates under the branches still alive (sections folded away)
+    T-->>N: candidates with breadcrumb + description
     Note over N,M: ONE joint judgment: all candidates share one context
     N->>M: judge(query, candidates)
-    M-->>N: P(relevant) for each candidate, comparable to each other
-    N->>N: keep top beam_width with p >= min_probability<br/>(none qualify: widen, keep top beam_width anyway)
+    M-->>N: P(yes) for each candidate, comparable to each other
+    N->>N: keep top k documents (top r passages at the last stage)<br/>pruned branches are never expanded
     N->>N: record StepTrace (kept and pruned candidates)
   end
-  N->>N: rank surviving passages by geometric mean of path probabilities
-  alt best passage p below abstain_below, or none reached
+  opt choice reranking enabled
+    N->>M: choose(query, top r passages): ONE multiple-choice question
+    M-->>N: probability distribution over the r passages
+  end
+  alt best passage P(yes) below abstain_below, or none reached
     N-->>U: abstained=true
   else
-    N-->>U: top_k passages + citations + full trace
+    N-->>U: passages in final order + citations + full trace
   end

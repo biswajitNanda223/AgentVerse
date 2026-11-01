@@ -42,7 +42,7 @@ async def test_mermaid_trace_is_valid_looking_and_marks_kept_pruned_and_answer_n
     assert answer.navigation is not None
     diagram = trace_to_mermaid(answer.navigation)
     assert diagram.startswith("flowchart TD")
-    assert " joint judgments, 4 levels" in diagram
+    assert " joint judgments, 3 stages" in diagram
     for needle in ("classDef kept", "classDef pruned", "classDef answer", "p=0."):
         assert needle in diagram
     assert "-.->" in diagram and "-->" in diagram  # pruned edges dotted, kept edges solid
@@ -86,7 +86,21 @@ def test_http_endpoint_answers_traces_and_validates_input() -> None:
     assert ok.status_code == 200
     body = ok.json()
     assert body["abstained"] is False and 1 <= body["model_calls"] <= 4
-    assert len(body["steps"]) == 4
+    assert len(body["steps"]) == 3
     assert "steps" not in client.post("/v1/ask", json={"query": "A2A agent card"}).json()
     assert client.post("/v1/ask", json={"query": ""}).status_code == 422
     assert client.get("/health/live").status_code == 200
+
+
+async def test_mermaid_shows_rank_and_choice_probability_when_reranked() -> None:
+    from decision_rag.local import LexicalDecisionModel
+    from decision_rag.navigator import NavigationConfig
+
+    pipeline = DecisionRagPipeline(
+        sample_tree(), LexicalDecisionModel(), NavigationConfig(rerank=True)
+    )
+    answer = await pipeline.answer("How do Kafka clients authenticate to Event Hubs?")
+    assert answer.navigation is not None
+    assert answer.navigation.steps[-1].stage == "rerank"
+    diagram = trace_to_mermaid(answer.navigation)
+    assert "rank 1" in diagram and "choice=" in diagram

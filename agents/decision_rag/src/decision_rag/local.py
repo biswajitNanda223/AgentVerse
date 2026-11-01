@@ -69,9 +69,7 @@ def terms(text: str) -> list[str]:
 
 
 class LexicalDecisionModel:
-    async def judge(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
-        if not candidates:
-            return []
+    def _raw(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
         query_terms = set(terms(query))
         bags = [Counter(terms(c.text)) for c in candidates]
         document_frequency: Counter[str] = Counter()
@@ -87,7 +85,26 @@ class LexicalDecisionModel:
                 if t in bag
             )
             scores.append(raw / math.sqrt(length))
+        return scores
+
+    async def judge(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
+        if not candidates:
+            return []
+        scores = self._raw(query, candidates)
         best = max(scores)
         if best <= 0:
-            return [0.0] * n
+            return [0.0] * len(candidates)
         return [0.95 * s / best for s in scores]  # relative to the best candidate in this call
+
+    async def choose(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
+        """Multiple-choice stand-in: a softmax over the lexical scores, so it sums to 1."""
+
+        if not candidates:
+            return []
+        scores = self._raw(query, candidates)
+        best = max(scores)
+        if best <= 0:
+            return [1.0 / len(candidates)] * len(candidates)
+        weights = [math.exp(4.0 * s / best) for s in scores]
+        total = sum(weights)
+        return [w / total for w in weights]

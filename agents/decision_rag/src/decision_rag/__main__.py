@@ -15,7 +15,9 @@ def _print_trace(answer_nav: object) -> None:
 
     assert isinstance(answer_nav, NavigationResult)
     for step in answer_nav.steps:
-        print(f"\nstep {step.step}: {len(step.candidates)} candidates, {step.model_calls} call(s)")
+        title = "choice rerank" if step.stage == "rerank" else f"{step.stage} stage"
+        count = f"{len(step.candidates)} candidates, {step.model_calls} call(s)"
+        print(f"\nstep {step.step} ({title}): {count}")
         for cand in sorted(step.candidates, key=lambda c: -(c.probability or 0)):
             p = "  -  " if cand.probability is None else f"{cand.probability:.2f}"
             print(f"  {'KEEP' if cand.kept else '    '} {p}  [{cand.kind}] {cand.title}")

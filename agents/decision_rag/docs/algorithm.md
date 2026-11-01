@@ -1,71 +1,121 @@
 # Algorithm
 
 All of it lives in [`navigator.py`](../src/decision_rag/navigator.py). Constants are in
-`NavigationConfig`.
+`NavigationConfig`. The pipeline is the one in the paper's Figure 2(c); items marked **this
+example** are additions that the figure does not show.
 
-## Navigation
+```mermaid
+flowchart LR
+  Q(["Query q"]) --> C[("Corpus")]
+  C -.->|"optional higher-order levels<br/>e.g. categories: keep top few"| Docs
+  C --> Docs["Documents D1 ... DN<br/>1 DOCUMENT SCREENING<br/>one yes/no question per document<br/>judged together in ONE forward pass<br/>keep top k"]
+  Docs -->|"kept documents only"| Pass["Passages of the kept documents<br/>2 PASSAGE SCORING<br/>one yes/no question per passage<br/>one forward pass<br/>keep top r"]
+  Docs -.->|"pruned documents:<br/>never expanded, never scored"| Gone["pruned"]
+  Pass --> Top["Top r passages"]
+  Top -->|"optional"| Choice["3 CHOICE RERANKING<br/>ONE multiple-choice question<br/>options = the r passages<br/>final ranking"]
+  Top -->|"without reranking"| Gen
+  Choice --> Gen["Generator LLM<br/>answers from the passages"]
+  classDef stage fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef opt fill:#fff3c4,stroke:#b8860b,color:#000
+  classDef gone fill:#eeeeee,stroke:#9e9e9e,color:#777,stroke-dasharray:4 3
+  classDef io fill:#dbe8ff,stroke:#2f5fb3,color:#000
+  class Docs,Pass stage
+  class Choice opt
+  class Gone gone
+  class Q,C,Top,Gen io
+```
+
+## Stages
+
+1. **Optional higher-order levels** (for example categories or topics): one joint judgment over
+   the corpus's top-level groups, keep `keep_topics`. If the corpus has only one group the model is
+   not called at all (this example).
+2. **Document screening**: one yes/no question per document under the kept groups, all in a single
+   shared context, so one decision-model call. Keep the top **k** (`keep_documents`).
+3. **Passage scoring**: one yes/no question per passage of the **kept documents only**, again one
+   call. Pruned documents are never expanded, so their passages are never scored. Keep the top
+   **r** (`keep_passages`).
+4. **Optional choice reranking** (`rerank=True`): one multiple-choice question whose options are
+   the r passages; the returned distribution gives the final order. Needs a model that implements
+   `choose()`.
+
+Sections sit between documents and passages in the tree. By default they are folded away
+(`skip_sections=True`): passage scoring sees the passages of a kept document directly, with the
+section title still in each candidate's breadcrumb. Set `skip_sections=False` to judge sections as
+their own stage.
 
 ```text
 frontier = [root]
-repeat until no frontier branch has children:
-    candidates = every child of every frontier branch
-    p = decision_model.judge(query, candidates)        # ONE joint judgment (see tournament)
-    keep = candidates with p >= min_probability, best first
-    if keep is empty: keep = best candidates anyway    # no signal: widen, do not guess
-    frontier = keep[:beam_width]
-rank the passages reached by  geometric_mean(p along the path)
-abstain if the best passage's last p < abstain_below, or none was reached
-return top_k
+for each stage (topics, documents, [sections], passages):
+    candidates = children of every branch in the frontier (skipped kinds looked through)
+    p = decision_model.judge(query, candidates)          # ONE joint judgment (see tournament)
+    keep = top k (top r at the passage stage), best first
+    frontier = keep                                      # pruned branches are never expanded
+if rerank:  order = decision_model.choose(query, kept passages)   # ONE multiple-choice question
+else:       order = kept passages by their own P(yes)
+abstain if the best passage's P(yes) < abstain_below, or none was reached      # this example
 ```
 
 ```mermaid
 flowchart TD
-  Start["Candidates judged: p for each"] --> Any{"any p >= min_probability?"}
-  Any -->|"yes"| KeepQ["keep those that qualify"]
-  Any -->|"no signal"| Widen["WIDEN: keep top beam_width anyway<br/>do not commit to one arbitrary branch"]
-  KeepQ --> Cap["cap at beam_width, best first"]
+  Start["Stage candidates judged: P(yes) for each"] --> Floor{"optional floor set<br/>and nobody reaches it?"}
+  Floor -->|"yes: no signal"| Widen["WIDEN: keep the top few anyway<br/>do not commit to one arbitrary branch"]
+  Floor -->|"no"| Top["keep the top k documents<br/>(top r passages at the last stage)"]
   Widen --> Next
-  Cap --> Next{"any kept branch has children?"}
-  Next -->|"yes"| Down["expand children: next step"]
-  Next -->|"no: all are passages"| Rank["rank passages by geometric mean<br/>of probabilities along the path"]
-  Rank --> Abst{"best passage p < abstain_below?"}
+  Top --> Next{"stage was passages?"}
+  Next -->|"no"| Down["expand ONLY the kept branches<br/>pruned ones are never scored"]
+  Next -->|"yes"| Rerank{"choice reranking on?"}
+  Rerank -->|"yes"| Choose["one multiple-choice question over the r passages<br/>order by choice probability"]
+  Rerank -->|"no"| Order["order by passage P(yes)"]
+  Choose --> Abst
+  Order --> Abst{"best passage P(yes) < abstain_below?"}
   Abst -->|"yes"| No["abstain: no answer from weak evidence"]
-  Abst -->|"no"| Yes["return top_k passages with citations"]
+  Abst -->|"no"| Yes["return passages with citations"]
   classDef ok fill:#d7f0dd,stroke:#2e7d32,color:#000
   classDef bad fill:#fde2e2,stroke:#c0392b,color:#000
   classDef mid fill:#fff3c4,stroke:#b8860b,color:#000
-  class Yes,KeepQ ok
+  class Yes,Top ok
   class No bad
-  class Widen mid
+  class Widen,Choose mid
 ```
 
-### Why a probability product, not a sum
+### The keep rule
 
-A passage is only useful if every ancestor was plausibly right, so the path score is the
-**geometric mean** of the probabilities from topic to passage (the mean of logs, exponentiated).
-One very unlikely ancestor drags it down; depth does not penalise it, because it is a mean, not a
-raw product. The final passage probability is used separately for the abstain decision, so a
-strong path to a weak passage still abstains.
+The figure's rule is "keep top k": no probability threshold. That is the default
+(`min_probability=0`). **This example** adds an optional floor; if you set one and no candidate
+reaches it, the top candidates are kept anyway, because "nothing looks relevant" means widen, not
+commit to one arbitrary branch.
 
-### Why widen instead of picking one branch
+### Ranking
 
-If every candidate scores near zero, the model is saying "I cannot tell from these descriptions".
-Committing to the single highest score would be an arbitrary bet that cannot be undone. Keeping
-the top `beam_width` costs one extra level of judging and usually recovers, as in the poison
-message trace in the [README](../README.md).
+Passages are ordered by their own yes/no probability, or by the choice probability when reranking
+is on. The paper's text that was available does not describe any path-level combination, so none is
+used.
+
+### Abstaining
+
+Not in the paper. If the best passage's P(yes) is below `abstain_below`, the pipeline returns no
+answer instead of the nearest weak match.
 
 ## Cost
 
-One decision-model call per level when a level fits in a context. With depth `d`, a query makes
-at most `d` calls (4 on the built-in corpus), independent of corpus size. A step with only one
-candidate needs no call: it inherits its parent's probability, because no new evidence was
-gathered (the trace shows `0 call(s)`). Latency is `d` times the model latency, plus the
-tournament rounds below on wide levels.
+One decision-model call per stage when the stage fits in a context. For a corpus with categories
+that is up to three calls (categories, documents, passages), plus one for the optional rerank,
+independent of corpus size. A step with only one candidate needs no call: it inherits its parent's
+probability, because no evidence was gathered (the trace shows `0 call(s)`). With a single topic
+and no rerank, a query costs two calls.
 
-## The tournament for oversized candidate sets
+## Choice reranking vs yes/no scoring
 
-A real corpus can have thousands of documents under a topic, more than fits one context.
-`max_candidates_per_call` bounds a single judgment. Larger sets run as a tournament:
+Passage scoring asks each passage "is this relevant?" independently of the others' answers, even
+though they share a context. Choice reranking asks one question, "which of these answers the
+query?", so the model must trade the passages off against each other. The paper's Figure 2 lists
+it as optional. The rerank costs one extra call over only r passages.
+
+## The tournament for oversized candidate sets (this example)
+
+A real corpus can have thousands of documents, more than fits one context. `max_candidates_per_call`
+bounds a single judgment. Larger sets run as a tournament:
 
 ```mermaid
 flowchart TD
@@ -88,8 +138,8 @@ flowchart TD
 
 Only the survivors of the last round get a probability, and the trace marks the rest
 `pruned early`. This keeps every probability that drives pruning comparable (the final round is a
-true joint judgment) at the cost of a few extra calls. It is this example's design; the paper's
-treatment of very wide levels was not available when this was written.
+true joint judgment) at the cost of a few extra calls. The paper's treatment of very wide stages
+was not available when this was written.
 
 ## Joint vs independent judgments
 
@@ -122,16 +172,15 @@ configuration switch (`DECISION_RAG_JUDGEMENT`) rather than a code change.
 
 ## Descriptions are the index
 
-There is no embedding index, but the model can only judge what it is shown. Each branch is shown
+There is no embedding index, but the model can only judge what it is shown. Each candidate is shown
 as `breadcrumb: description`, where the description is extractive:
 
 - topic: its documents with their section titles
 - document: its sections, each with the opening of its first passage
-- section: the opening of its first passage
-- passage: the passage text
+- passage: the passage text, with its section title in the breadcrumb
 
-If navigation misses, look at the trace for the level where the right branch got a low
-probability, then improve that branch's title or description (or switch to a stronger model).
+If navigation misses, look at the trace for the stage where the right branch got a low
+probability, then improve that branch's title or description, raise k, or use a stronger model.
 
 ## Failure handling
 
@@ -139,13 +188,15 @@ probability, then improve that branch's title or description (or switch to a str
 |---|---|
 | decision model errors, times out or answers an invalid shape | `DecisionModelError`; the pipeline abstains with `decision_model_unavailable` |
 | wrong number of judgments, or a probability outside 0..1 | `DecisionModelError` (validated before use) |
+| choice distribution of the wrong length, outside 0..1, or not summing to 1 | `DecisionModelError` |
+| `rerank=True` with a model that cannot `choose()` | `ValueError` at construction |
 | no passage reached | abstain |
 | best passage below `abstain_below` | abstain (`low_relevance`), no citations |
 
-## Complexity and limits
+## Limits
 
-- Memory: the whole tree is held in memory; for very large corpora, build the tree lazily or
-  shard by topic.
-- A leaf-level tie is broken by the last probability, then by order.
-- The trace records every candidate, so its size is the number of candidates judged, not just
-  the ones kept.
+- The whole tree is held in memory; for very large corpora, build it lazily or shard by topic.
+- Pure top-k always keeps k candidates, even when all are irrelevant. That costs extra passage
+  scoring but never prunes the right branch for lack of a threshold.
+- The trace records every candidate judged, so its size is the number of candidates, not only the
+  kept ones.

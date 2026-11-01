@@ -15,3 +15,20 @@ class ScriptedModel:
     async def judge(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
         self.calls.append([c.id for c in candidates])
         return [self._score(c) for c in candidates]
+
+
+class ScriptedChoiceModel(ScriptedModel):
+    """ScriptedModel that also answers the multiple-choice rerank with a chosen distribution."""
+
+    def __init__(
+        self,
+        score: Callable[[Candidate], float],
+        choice: Callable[[Sequence[Candidate]], list[float]],
+    ) -> None:
+        super().__init__(score)
+        self._choice = choice
+        self.choose_calls: list[list[str]] = []
+
+    async def choose(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
+        self.choose_calls.append([c.id for c in candidates])
+        return self._choice(candidates)

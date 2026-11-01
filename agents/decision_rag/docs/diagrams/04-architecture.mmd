@@ -7,7 +7,7 @@ flowchart LR
   subgraph Core["decision_rag package"]
     Factory["factory + settings<br/>DECISION_RAG_*"]
     Pipe["DecisionRagPipeline<br/>navigate, then answer or abstain"]
-    Nav["DecisionNavigator<br/>beam search, tournament,<br/>trace"]
+    Nav["DecisionNavigator<br/>screen documents, score passages,<br/>optional choice rerank, trace"]
     Tree["CorpusTree<br/>topic, document, section, passage"]
     Mer["trace_to_mermaid"]
   end
@@ -15,7 +15,7 @@ flowchart LR
     Sample["built-in sample corpus"]
     Md["Markdown folder loader<br/>folders, headings, paragraphs"]
   end
-  Port{{"DecisionModel protocol<br/>judge(query, candidates) -> P(relevant) each"}}
+  Port{{"DecisionModel protocol<br/>judge(query, candidates) -> P(yes) each<br/>ChoiceModel: choose(...) -> distribution"}}
   Lex["LexicalDecisionModel<br/>offline stand-in, not a language model"]
   Jev["JevDecisionModel<br/>joint or independent<br/>one noul question per candidate"]
   Ext[("TypeSafe Jev<br/>POST /v1/systemone")]

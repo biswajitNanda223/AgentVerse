@@ -10,10 +10,10 @@ Hit@1 (is the top passage exactly the expected one), decision-model calls per qu
 ## Reading the offline numbers
 
 With the offline stand-in both sides are word-matchers, so the result checks that the machinery
-works (one call per level, sensible routing). It says nothing about whether DecisionRAG beats
+works (one call per stage, sensible routing). It says nothing about whether DecisionRAG beats
 retrieval: a flat word-matcher can win on a 17-passage corpus, and the stand-in cannot understand
 paraphrases. `tests/test_evaluate.py` only guards against regressions (Hit@1 stays at or above 0.7 and
-one call per level).
+one call per stage).
 
 ## Measuring the real thing
 
@@ -25,10 +25,14 @@ one call per level).
 
    | Run | Setting |
    |---|---|
-   | navigation, joint | `DECISION_RAG_BACKEND=jev` |
-   | navigation, independent | plus `DECISION_RAG_JUDGEMENT=independent` |
+   | screening + scoring, joint | `DECISION_RAG_BACKEND=jev` (or `claude`) |
+   | the same with choice reranking | plus `DECISION_RAG_RERANK=true` |
+   | independent judgments (ablation) | plus `DECISION_RAG_JUDGEMENT=independent` |
    | your current retriever | the baseline you would otherwise ship |
    | retriever plus reranker | if you use one |
+
+   Also sweep **k** and **r** (`KEEP_DOCUMENTS`, `KEEP_PASSAGES`): the paper's pipeline trades
+   recall against cost through them.
 
 4. **Report** Hit@1 or R@1, Hit@k, abstention precision (of abstained questions, how many truly
    had no answer), model calls per query, p50 and p95 latency, and cost per query.

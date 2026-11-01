@@ -82,10 +82,12 @@ a tree.
 
 ## What is and is not from the paper
 
-| From the paper (as read) | This example's own design |
+| From the paper (as read: abstract, Figures 1 and 2, related work) | This example's own design |
 |---|---|
-| decision models judge candidates jointly in one forward pass, no tokens | beam search over levels, `beam_width`, `min_probability` |
-| shared context makes estimates comparable | widening the beam when no candidate looks relevant |
-| navigate topics to passages by hierarchical decisions | tournament for candidate sets larger than a context |
-| no first-stage retriever, precomputed index or task training | geometric-mean ranking, abstain threshold |
-| reported benchmark results | extractive descriptions of branches built from titles and openings |
+| decision models judge candidates jointly in one forward pass, no tokens | tournament when a stage has more candidates than fit one context |
+| shared context makes estimates comparable | abstaining when the best passage is improbable |
+| three stages: document screening (top k), passage scoring (top r), optional choice reranking | an optional probability floor, and widening when it is set and nobody passes |
+| pruned documents are never expanded or scored | skipping the model call when a step has a single option |
+| optional higher-order hierarchy levels such as categories | extractive branch descriptions from titles and openings |
+| no first-stage retriever, precomputed index or task training | default values of k, r and the thresholds |
+| reported benchmark results (quoted, not reproduced) | sections folded away by default so the tree reads documents then passages |

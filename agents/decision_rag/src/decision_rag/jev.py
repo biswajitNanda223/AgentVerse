@@ -5,9 +5,10 @@ candidate as the shared state, with one yes/no question per candidate. Independe
 one request per candidate with only that candidate in context. It exists to measure how much
 judging in a shared context helps on your data.
 
-Only the `noul` question type is used, because it is the one documented by TypeSafe:
-`{"type": "noul", "instructions": ...}` answered by a probability. Everything else about the
-HTTP shape is in this file; see docs/jev-integration.md for what is and is not verified.
+Yes/no scoring uses only the `noul` question type, the one documented by TypeSafe:
+`{"type": "noul", "instructions": ...}` answered by a probability. The optional choice rerank uses
+a `choice` question, whose shape is NOT verified. Everything about the HTTP shape is in this
+file; see docs/jev-integration.md for what is and is not verified.
 """
 
 from __future__ import annotations
@@ -50,6 +51,32 @@ class JevDecisionModel:
             scores.extend(await self._request(query, [candidate]))
         return scores
 
+    async def choose(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
+        """One `choice` question whose options are the candidates (UNVERIFIED wire shape).
+
+        The choice request fields (`criteria` as label -> description) and the answer's
+        `probabilities` map come from secondary write-ups, not TypeSafe's reference, so this
+        fails closed on anything unexpected. See docs/jev-integration.md.
+        """
+
+        if not candidates:
+            return []
+        labels = [f"C{i}" for i in range(len(candidates))]
+        body: dict[str, Any] = {
+            "model": self._model,
+            "state": {"query": query},
+            "questions": {
+                "pick": {
+                    "type": "choice",
+                    "instructions": "Which candidate best answers the query?",
+                    "criteria": {
+                        label: c.text[:300] for label, c in zip(labels, candidates, strict=True)
+                    },
+                }
+            },
+        }
+        return _decode_choice(await self._post(body), labels)
+
     async def _request(self, query: str, candidates: Sequence[Candidate]) -> list[float]:
         names = [f"c{i}" for i in range(len(candidates))]
         body: dict[str, Any] = {
@@ -68,6 +95,9 @@ class JevDecisionModel:
                 for i, name in enumerate(names)
             },
         }
+        return _decode(await self._post(body), names)
+
+    async def _post(self, body: dict[str, Any]) -> object:
         headers = {
             "Authorization": f"Bearer {self._key.get_secret_value()}",
             "Content-Type": "application/json",
@@ -80,10 +110,9 @@ class JevDecisionModel:
         if response.status_code != 200:
             raise DecisionModelError(f"decision model returned HTTP {response.status_code}")
         try:
-            payload = response.json()
+            return response.json()
         except ValueError as exc:
             raise DecisionModelError("response is not valid JSON") from exc
-        return _decode(payload, names)
 
 
 def _decode(payload: object, names: list[str]) -> list[float]:
@@ -102,5 +131,24 @@ def _decode(payload: object, names: list[str]) -> list[float]:
             raise DecisionModelError(f"answer for {name!r} is not a number")
         if not math.isfinite(value) or not 0 <= value <= 1:
             raise DecisionModelError(f"answer for {name!r} is outside 0..1")
+        scores.append(float(value))
+    return scores
+
+
+def _decode_choice(payload: object, labels: list[str]) -> list[float]:
+    if not isinstance(payload, dict):
+        raise DecisionModelError("response is not a JSON object")
+    answers = payload.get("answers", payload)
+    answer = answers.get("pick") if isinstance(answers, dict) else None
+    probabilities = answer.get("probabilities") if isinstance(answer, dict) else None
+    if not isinstance(probabilities, dict):
+        raise DecisionModelError("missing probabilities for the choice question")
+    scores: list[float] = []
+    for label in labels:
+        value = probabilities.get(label)
+        if isinstance(value, bool) or not isinstance(value, int | float):
+            raise DecisionModelError(f"choice probability for {label!r} is not a number")
+        if not math.isfinite(value) or not 0 <= value <= 1:
+            raise DecisionModelError(f"choice probability for {label!r} is outside 0..1")
         scores.append(float(value))
     return scores

@@ -91,3 +91,35 @@ async def test_no_candidates_makes_no_request() -> None:
         raise AssertionError("must not call the API")
 
     assert await model(httpx.MockTransport(handler)).judge("q", []) == []
+
+
+async def test_choose_sends_one_choice_question_with_every_candidate_as_an_option() -> None:
+    seen: list[dict[str, object]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(
+            200, json={"answers": {"pick": {"probabilities": {"C0": 0.2, "C1": 0.5, "C2": 0.3}}}}
+        )
+
+    scores = await model(httpx.MockTransport(handler)).choose("q", CANDIDATES)
+    assert scores == [0.2, 0.5, 0.3]
+    [body] = seen
+    question = body["questions"]["pick"]  # type: ignore[index]
+    assert question["type"] == "choice" and list(question["criteria"]) == ["C0", "C1", "C2"]
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"pick": {}},
+        {"pick": {"probabilities": {"C0": 0.5}}},
+        {"pick": {"probabilities": {"C0": 2, "C1": 0, "C2": 0}}},
+        {"pick": {"choice": "C1"}},
+        [],
+    ],
+)
+async def test_unverified_choice_shape_fails_closed(payload: object) -> None:
+    transport = httpx.MockTransport(lambda request: httpx.Response(200, json=payload))
+    with pytest.raises(DecisionModelError):
+        await model(transport).choose("q", CANDIDATES)

@@ -21,11 +21,15 @@ class DecisionRagSettings(BaseSettings):
     agent_model: str = "gemini-2.5-flash"
     corpus_dir: str | None = None  # Markdown folder; unset uses the built-in sample corpus
 
-    beam_width: int = Field(default=3, ge=1, le=20)
-    min_probability: float = Field(default=0.2, ge=0, le=1)
+    keep_topics: int = Field(default=2, ge=1, le=50)
+    keep_documents: int = Field(default=3, ge=1, le=50)  # k
+    keep_sections: int = Field(default=3, ge=1, le=50)
+    keep_passages: int = Field(default=3, ge=1, le=40)  # r
+    skip_sections: bool = True
+    rerank: bool = False
+    min_probability: float = Field(default=0.0, ge=0, le=1)
     abstain_below: float = Field(default=0.3, ge=0, le=1)
     max_candidates_per_call: int = Field(default=40, ge=2, le=500)
-    top_k: int = Field(default=3, ge=1, le=20)
 
 
 @lru_cache

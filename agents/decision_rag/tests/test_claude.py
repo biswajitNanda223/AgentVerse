@@ -130,3 +130,31 @@ async def test_navigator_runs_end_to_end_with_a_claude_style_judge() -> None:
 def test_factory_builds_the_claude_backend_without_credentials_until_first_use() -> None:
     model = build_model(DecisionRagSettings(backend="claude", claude_model="claude-sonnet-5-5"))
     assert isinstance(model, ClaudeDecisionModel)
+
+
+async def test_choose_asks_a_multiple_choice_question_in_one_request() -> None:
+    client = FakeClient(reply(scores(0.2, 0.5, 0.3)))
+    model = ClaudeDecisionModel(client=client)
+    assert await model.choose("the query", CANDIDATES) == [0.2, 0.5, 0.3]
+    [request] = client.requests
+    assert "multiple-choice" in request["system"] and "sum to 1" in request["system"]
+    assert all(f"[{i}] text {i}" in request["messages"][0]["content"] for i in range(3))
+
+
+async def test_navigator_reranks_with_claude_style_choose() -> None:
+    from decision_rag.navigator import NavigationConfig
+
+    class Judge(FakeClient):
+        async def _create(self, **kwargs: Any) -> Any:
+            lines = [x for x in kwargs["messages"][0]["content"].splitlines() if x.startswith("[")]
+            if "multiple-choice" in kwargs["system"]:
+                weights = [3.0 if "dead-letter topic" in x.lower() else 1.0 for x in lines]
+                return reply(scores(*[w / sum(weights) for w in weights]))
+            return reply(scores(*[0.9 if "dead-letter" in x.lower() else 0.1 for x in lines]))
+
+    model = ClaudeDecisionModel(client=Judge())
+    result = await DecisionNavigator(
+        sample_tree(), model, NavigationConfig(rerank=True, keep_documents=2)
+    ).navigate("poison message")
+    assert result.steps[-1].stage == "rerank"
+    assert result.passages[0].node.id.startswith("messaging/dead-letter-queues/")

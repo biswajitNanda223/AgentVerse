@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>How DecisionRAG works</title>
+<style>
+  :root { --ink:#1b1f24; --mut:#55606e; --blue:#2f5fb3; --green:#2e7d32; --amber:#a97b00; --red:#c0392b; --violet:#6a4fb3; --teal:#00796b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f6f9; color:var(--ink); font:15px/1.4 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  #poster { width:2200px; padding:34px 40px 30px; }
+  h1 { margin:0; font-size:36px; letter-spacing:-.4px; } .sub { color:var(--mut); margin:6px 0 20px; font-size:17px; }
+  .chip svg, .why svg, .card h2 svg { fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  svg.i { width:44px; height:44px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; flex:none; }
+  svg.s { width:22px; height:22px; fill:none; stroke:currentColor; stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; vertical-align:-5px; }
+  .pipe { display:grid; grid-template-columns:repeat(6,1fr); gap:0; align-items:stretch; }
+  .step { position:relative; background:#fff; border:2px solid; border-radius:16px; padding:14px 16px 14px; margin-right:34px; }
+  .step:last-child { margin-right:0; }
+  .step:not(:last-child):after { content:"\27A4"; position:absolute; right:-30px; top:46%; font-size:24px; color:#44505e; }
+  .step .top { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .step .num { font-size:12.5px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+  .step h3 { margin:0; font-size:19px; line-height:1.15; }
+  .step p { margin:6px 0 0; font-size:14px; color:#2c3540; }
+  .step .tag { display:inline-block; margin-top:8px; padding:3px 10px; border-radius:20px; font-size:12.5px; font-weight:700; color:#fff; }
+  .c-blue { color:var(--blue); border-color:var(--blue); } .c-blue .tag { background:var(--blue); }
+  .c-violet { color:var(--violet); border-color:var(--violet); } .c-violet .tag { background:var(--violet); }
+  .c-green { color:var(--green); border-color:var(--green); } .c-green .tag { background:var(--green); }
+  .c-amber { color:var(--amber); border-color:var(--amber); border-style:dashed; } .c-amber .tag { background:var(--amber); }
+  .c-teal { color:var(--teal); border-color:var(--teal); } .c-teal .tag { background:var(--teal); }
+  .step h3, .step p { color:var(--ink); } .step p { color:#2c3540; }
+  .row2 { display:grid; grid-template-columns:690px 1fr; gap:22px; margin-top:22px; }
+  .card { background:#fff; border:1.6px solid #c9d1dc; border-radius:16px; padding:16px 20px; }
+  .card h2 { margin:0 0 4px; font-size:21px; display:flex; align-items:center; gap:10px; } .card h2 svg { width:30px; height:30px; }
+  .card .lead { margin:0 0 12px; color:#3a4654; font-size:14.5px; }
+  .dm { display:grid; grid-template-columns:1fr 70px 1fr; align-items:center; gap:6px; }
+  .ctx { border:2px dashed var(--blue); border-radius:12px; padding:10px 12px; background:#f2f6ff; font-size:13.5px; }
+  .ctx b { display:block; margin-bottom:4px; color:var(--blue); }
+  .ctx .q { background:#dbe8ff; border-radius:8px; padding:5px 8px; margin-bottom:6px; }
+  .ctx .cand { background:#fff; border:1px solid #c5d3ee; border-radius:7px; padding:3px 8px; margin:3px 0; }
+  .chip { text-align:center; color:var(--violet); } .chip svg { width:60px; height:60px; }
+  .chip small { display:block; font-size:12px; color:#3a4654; font-weight:600; line-height:1.15; margin-top:2px; }
+  .out { font-size:13.5px; } .out b { display:block; margin-bottom:4px; color:var(--green); }
+  .bar { display:flex; align-items:center; gap:8px; margin:3px 0; }
+  .bar .t { flex:0 0 150px; font-size:12.5px; color:#2c3540; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .bar .b { flex:1; height:13px; background:#e6e9ef; border-radius:7px; overflow:hidden; } .bar .b i { display:block; height:100%; border-radius:7px; background:var(--green); }
+  .bar.pr .b i { background:#aeb6c2; } .bar.pr .t { color:#7a8594; }
+  .bar .v { flex:0 0 40px; font-size:12.5px; font-weight:700; text-align:right; } .bar.pr .v { color:#7a8594; font-weight:600; }
+  .bar .k { flex:0 0 52px; font-size:11px; font-weight:800; color:var(--green); } .bar.pr .k { color:#9aa3af; }
+  .eg { display:grid; grid-template-columns:1.05fr 1.3fr 1.65fr 1.15fr; gap:18px; }
+  .eg .bar .t { flex-basis:118px; } .eg .col:nth-child(3) .bar .t { flex-basis:160px; }
+  .out .bar .t { flex-basis:26px; }
+  .eg .col h4 { margin:0 0 6px; font-size:14px; display:flex; align-items:center; gap:7px; }
+  .eg .col h4 em { font-style:normal; font-weight:600; color:#55606e; font-size:12.5px; }
+  .eg .gap { color:#7a8594; font-size:12px; margin-top:3px; }
+  .row3 { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-top:22px; }
+  .why { background:#fff; border:1.6px solid; border-radius:14px; padding:12px 16px; }
+  .why h3 { margin:0 0 4px; font-size:17px; display:flex; align-items:center; gap:9px; } .why p { margin:0; font-size:14px; color:#2c3540; }
+  .why svg { width:28px; height:28px; }
+  .note { margin-top:16px; padding:11px 16px; background:#fff; border:1.2px solid #c9d1dc; border-radius:10px; color:#3a4654; font-size:13.5px; }
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><defs>
+ <symbol id="chat" viewBox="0 0 24 24"><path d="M4 5h16v11H10l-4 4v-4H4z"/><path d="M8 9h8M8 12h5"/></symbol>
+ <symbol id="tree" viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.2"/><circle cx="5.5" cy="18" r="2.2"/><circle cx="12" cy="18" r="2.2"/><circle cx="18.5" cy="18" r="2.2"/><path d="M12 7.2v4M12 11.2H5.5v4.6M12 11.2v4.6M12 11.2h6.5v4.6"/></symbol>
+ <symbol id="docs" viewBox="0 0 24 24"><path d="M8 3h7l4 4v11H8z"/><path d="M15 3v4h4M11 12h5M11 15h5"/><path d="M5 7v14h11" /></symbol>
+ <symbol id="lines" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 12h8M8 15h5"/></symbol>
+ <symbol id="funnel" viewBox="0 0 24 24"><path d="M3 5h18l-7 8.5V20l-4-2v-4.5z"/></symbol>
+ <symbol id="rank" viewBox="0 0 24 24"><path d="M4 6.5l2 2 3-3.5M4 14l2 2 3-3.5"/><path d="M12 7h8M12 15h8"/><circle cx="18" cy="21" r=".6"/></symbol>
+ <symbol id="llm" viewBox="0 0 24 24"><path d="M12 3l2.1 5.9L20 11l-5.9 2.1L12 19l-2.1-5.9L4 11l5.9-2.1z"/><path d="M19 3v3M17.5 4.5h3"/></symbol>
+ <symbol id="db" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></symbol>
+ <symbol id="cpu" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2"/><path d="M9.5 3v4M14.5 3v4M9.5 17v4M14.5 17v4M3 9.5h4M3 14.5h4M17 9.5h4M17 14.5h4"/><path d="M10 12h4M12 10v4"/></symbol>
+ <symbol id="shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.6 8-8 9-4.4-1-8-4-8-9V6z"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+ <symbol id="bolt" viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></symbol>
+ <symbol id="scale" viewBox="0 0 24 24"><path d="M12 4v16M6 20h12M5 7h14"/><path d="M5 7l-3 7a3 3 0 006 0zM19 7l-3 7a3 3 0 006 0z"/></symbol>
+ <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+ <symbol id="folder" viewBox="0 0 24 24"><path d="M3 7h6l2 2h10v10H3z"/></symbol>
+</defs></svg>
+
+<div id="poster">
+<h1>How DecisionRAG works</h1>
+<div class="sub">Find the right passage by <b>walking the corpus with a decision model</b> (screen documents, score passages, optionally rerank), not by searching an index. Pipeline from Figure 2(c) of arXiv:2610.35868.</div>
+
+<div class="pipe">
+  <div class="step c-blue"><div class="top"><svg class="i"><use href="#chat"/></svg><div><div class="num">Input</div><h3>Question</h3></div></div>
+    <p>The user asks, for example, "How do Kafka clients authenticate to Event Hubs?"</p><span class="tag">query q</span></div>
+
+  <div class="step c-violet"><div class="top"><svg class="i"><use href="#tree"/></svg><div><div class="num">Before the query</div><h3>The corpus is a tree</h3></div></div>
+    <p>Topics, documents, sections, passages: the structure it already has. No embeddings, no index to build or refresh.</p><span class="tag">structure, not an index</span></div>
+
+  <div class="step c-green"><div class="top"><svg class="i"><use href="#docs"/></svg><svg class="i" style="width:30px;height:30px"><use href="#funnel"/></svg><div><div class="num">Stage 1</div><h3>Document screening</h3></div></div>
+    <p>One yes/no question per document, all judged <b>together in one shared context</b>. Keep the top <b>k</b>. Optional categories can narrow first.</p><span class="tag">1 call, keep top k</span></div>
+
+  <div class="step c-green"><div class="top"><svg class="i"><use href="#lines"/></svg><svg class="i" style="width:30px;height:30px"><use href="#funnel"/></svg><div><div class="num">Stage 2</div><h3>Passage scoring</h3></div></div>
+    <p>Yes/no per passage, <b>only for the kept documents</b>. Pruned documents are never expanded or scored. Keep the top <b>r</b>.</p><span class="tag">1 call, keep top r</span></div>
+
+  <div class="step c-amber"><div class="top"><svg class="i"><use href="#rank"/></svg><div><div class="num">Stage 3, optional</div><h3>Choice rerank</h3></div></div>
+    <p>One multiple-choice question over the r passages ("which best answers it?") gives the final order.</p><span class="tag">1 call, over r passages</span></div>
+
+  <div class="step c-teal"><div class="top"><svg class="i"><use href="#llm"/></svg><div><div class="num">Output</div><h3>Answer</h3></div></div>
+    <p>The generator answers from the passages and cites topic &gt; document &gt; section (and page for PDFs). Weak evidence: it abstains.</p><span class="tag">grounded + cited</span></div>
+</div>
+
+<div class="row2">
+  <div class="card"><h2><svg class="s" style="color:var(--violet)"><use href="#cpu"/></svg>What one decision-model call does</h2>
+    <p class="lead">Every stage is a single call. The model sees <b>all candidates at once</b>, so its probabilities are comparable and can be ranked. It writes no text.</p>
+    <div class="dm">
+      <div class="ctx"><b>Shared context</b><div class="q">Query: how do Kafka clients authenticate?</div>
+        <div class="cand">C0 Azure Event Hubs</div><div class="cand">C1 Kafka consumer groups</div><div class="cand">C2 Dead-letter queues</div><div class="cand">C3 GraphRAG ...</div></div>
+      <div class="chip"><svg><use href="#cpu"/></svg><small>decision model<br>one forward pass</small></div>
+      <div class="out"><b>P(yes) for each</b>
+        <div class="bar"><span class="t">C0</span><span class="b"><i style="width:95%"></i></span><span class="v">0.95</span></div>
+        <div class="bar"><span class="t">C1</span><span class="b"><i style="width:14%"></i></span><span class="v">0.14</span></div>
+        <div class="bar"><span class="t">C2</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span></div>
+        <div class="bar"><span class="t">C3</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span></div></div>
+    </div>
+    <p class="lead" style="margin-top:12px">The model behind it is pluggable: <b>TypeSafe Jev</b> (a real decision model), <b>Claude</b> (writes its scores as tokens, so slower and uncalibrated) or an <b>offline word-matching stand-in</b> used for the example on the right.</p>
+  </div>
+
+  <div class="card"><h2><svg class="s" style="color:var(--green)"><use href="#eye"/></svg>A real run, stage by stage <span style="font-weight:500;font-size:14px;color:#55606e">(offline stand-in, so scores come from word overlap; 4 calls in total)</span></h2>
+    <p class="lead">Question: "How do Kafka clients authenticate to Event Hubs?" with k = 3 documents, r = 3 passages, choice rerank on. Green was kept, grey was pruned.</p>
+    <div class="eg">
+      <div class="col"><h4><svg class="s"><use href="#folder"/></svg>Topics <em>keep 2</em></h4>
+        <div class="bar"><span class="t">Messaging</span><span class="b"><i style="width:95%"></i></span><span class="v">0.95</span><span class="k">KEEP</span></div>
+        <div class="bar"><span class="t">Retrieval</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span><span class="k">KEEP</span></div>
+        <div class="bar pr"><span class="t">Agents</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span><span class="k">pruned</span></div>
+        <div class="gap">no signal on a tie: pure top-k still keeps 2</div></div>
+      <div class="col"><h4><svg class="s"><use href="#docs"/></svg>Documents <em>keep k = 3</em></h4>
+        <div class="bar"><span class="t">Azure Event Hubs</span><span class="b"><i style="width:95%"></i></span><span class="v">0.95</span><span class="k">KEEP</span></div>
+        <div class="bar"><span class="t">Kafka consumer groups</span><span class="b"><i style="width:14%"></i></span><span class="v">0.14</span><span class="k">KEEP</span></div>
+        <div class="bar"><span class="t">Dead-letter queues</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span><span class="k">KEEP</span></div>
+        <div class="bar pr"><span class="t">Hybrid retrieval</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span><span class="k">pruned</span></div>
+        <div class="bar pr"><span class="t">Chunking, GraphRAG</span><span class="b"><i style="width:2%"></i></span><span class="v">0.00</span><span class="k">pruned</span></div></div>
+      <div class="col"><h4><svg class="s"><use href="#lines"/></svg>Passages <em>of kept docs only, keep r = 3</em></h4>
+        <div class="bar"><span class="t">Event Hubs exposes a Kafka endpoint...</span><span class="b"><i style="width:95%"></i></span><span class="v">0.95</span><span class="k">KEEP</span></div>
+        <div class="bar"><span class="t">Each Kafka topic maps to an event hub...</span><span class="b"><i style="width:95%"></i></span><span class="v">0.95</span><span class="k">KEEP</span></div>
+        <div class="bar"><span class="t">Event Hubs Capture writes streaming...</span><span class="b"><i style="width:55%"></i></span><span class="v">0.55</span><span class="k">KEEP</span></div>
+        <div class="bar pr"><span class="t">Adding consumers beyond the number...</span><span class="b"><i style="width:15%"></i></span><span class="v">0.15</span><span class="k">pruned</span></div>
+        <div class="bar pr"><span class="t">3 more passages (0.14, 0.13, 0.00)</span><span class="b"><i style="width:13%"></i></span><span class="v">&le;0.14</span><span class="k">pruned</span></div>
+        <div class="gap">passages of Retrieval and the other topics were never scored</div></div>
+      <div class="col"><h4><svg class="s"><use href="#rank"/></svg>Choice rerank <em>final order</em></h4>
+        <div class="bar"><span class="t">1  Event Hubs exposes...</span><span class="b"><i style="width:47%;background:var(--amber)"></i></span><span class="v">0.47</span></div>
+        <div class="bar"><span class="t">2  Each Kafka topic maps...</span><span class="b"><i style="width:46%;background:var(--amber)"></i></span><span class="v">0.46</span></div>
+        <div class="bar"><span class="t">3  Event Hubs Capture...</span><span class="b"><i style="width:6%;background:var(--amber)"></i></span><span class="v">0.06</span></div>
+        <div class="gap">choice probabilities sum to 1; the top passage is returned with its path</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="row3">
+  <div class="why" style="border-color:var(--green)"><h3 style="color:var(--green)"><svg><use href="#bolt"/></svg>Why it is fast</h3><p>One model call per stage, never one per passage: two to three calls (plus one for the optional rerank) however big the corpus is. A step with a single option needs no call.</p></div>
+  <div class="why" style="border-color:var(--blue)"><h3 style="color:var(--blue)"><svg><use href="#scale"/></svg>Why "together" matters</h3><p>All candidates of a stage share one context, so the model weighs them against each other and the scores can be ranked. Independent scoring (an ablation switch) can drift between candidates.</p></div>
+  <div class="why" style="border-color:var(--red)"><h3 style="color:var(--red)"><svg><use href="#shield"/></svg>Safety</h3><p>If the best passage is improbable it <b>abstains</b>; if the decision model fails or answers badly it abstains with a reason instead of guessing. Retrieved text is untrusted data.</p></div>
+  <div class="why" style="border-color:var(--violet)"><h3 style="color:var(--violet)"><svg><use href="#db"/></svg>What it needs</h3><p>A corpus with real structure (titles, headings). No embedding index, no first-stage retriever, no task-specific training. A flat pile of unlabelled text is a poor fit.</p></div>
+</div>
+
+<div class="note"><b>Honest notes.</b> The pipeline follows the paper's Figure 2 and abstract; the paper's default k and r, prompts and tree construction were not available, so the defaults here are this example's choices. The numbers in the worked example come from the offline word-matching stand-in, not from Jev or Claude, and say nothing about the paper's accuracy results. Rendered from <code>python -m decision_rag --trace</code> with <code>DECISION_RAG_RERANK=true</code>.</div>
+</div></body></html>

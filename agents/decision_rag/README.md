@@ -63,6 +63,10 @@ the one with reranking, is not confirmed here).
 
 ## How it works
 
+The whole flow on one page, with a real run (source: [docs/diagrams/09-how-it-works.html](docs/diagrams/09-how-it-works.html)):
+
+![How DecisionRAG works](docs/images/09-how-it-works.png)
+
 The pipeline, as drawn in the paper's Figure 2(c):
 
 ```mermaid

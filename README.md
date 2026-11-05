@@ -26,6 +26,7 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Define an agent as a YAML file with SKILL.md skills that unlock tools, plus code-enforced guardrails | [Declarative agent and skills](agents/declarative_agent/README.md) |
 | Retrieve by navigating a corpus hierarchy with a decision model (DecisionRAG paper), with Claude and Jev backends, PDF input and sample data | [DecisionRAG](agents/decision_rag/README.md) |
 | See the ADK agent end to end for the Project SLM scenarios, plus Agent Engine advantages and risks | [Project SLM architecture](docs/project-slm/README.md) |
 | Build with a System One model (TypeSafe Jev): typed fast decisions routing to an agent | [System One triage](agents/system_one_triage/README.md) |
@@ -58,6 +59,8 @@ together.
   TypeSafe Jev routing work in plain code, with System Two escalation and fail-safe fallback.
 - **Decision-model retrieval:** DecisionRAG navigates topic > document > section > passage with
   joint decision-model judgments (one call per level), traces and abstention, instead of an index.
+- **Declarative agents and skills:** an agent defined in YAML, SKILL.md skills loaded on demand that
+  gate which tools exist, and code-enforced guardrails (model-call cap, SQL AST check).
 - **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
   Kubernetes security contexts, HPA and PodDisruptionBudget.
 
@@ -167,7 +170,8 @@ AgentVerse/                       uv workspace root (pyproject.toml + single uv.
 │   ├── production_security/      security-first agent, memory, cache, evals and runbooks
 │   ├── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
 │   ├── system_one_triage/        System One (Jev) typed decisions routing tickets to an ADK agent
-│   └── decision_rag/             DecisionRAG: navigate topic > document > section > passage with a decision model
+│   ├── decision_rag/             DecisionRAG: navigate topic > document > section > passage with a decision model
+│   └── declarative_agent/        YAML-defined ADK agent, SKILL.md skills that gate tools, guardrail callbacks
 ├── examples/                     runnable RAG, chunking and production patterns
 ├── docs/                         architecture and operational guides
 ├── deploy/                       shared Compose, OTel and Kubernetes assets
@@ -192,6 +196,9 @@ flowchart LR
   Root --> DR["agents/decision_rag"]
   DR -->|"workspace dependency"| Lib
   DR --> Img5["Docker image + Cloud Run<br/>navigation API + ADK agent"]
+  Root --> DA["agents/declarative_agent"]
+  DA -->|"workspace dependency"| Lib
+  DA --> Img6["Docker image + Cloud Run<br/>YAML agent served by ADK"]
   Sec --> Img2["Docker image + Cloud Run<br/>agents-cli manifest"]
   Lib --> Img0["Docker image<br/>standalone API"]
 ```

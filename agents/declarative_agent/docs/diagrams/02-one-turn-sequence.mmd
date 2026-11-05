@@ -1,0 +1,33 @@
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant R as ADK runner
+  participant B as before_model_callback<br/>call budget
+  participant M as Model
+  participant T as SkillToolset
+  participant G as before_tool_callback<br/>SQL guardrail
+  participant D as run_governed_sql
+  U->>R: How late is piling at Chennai DC-1?
+  R->>B: model call 1
+  B-->>R: under the cap, count it
+  R->>M: tools visible: list_skills, load_skill, load_skill_resource
+  M-->>R: call list_skills
+  R->>T: list_skills (names + one-line descriptions)
+  R->>M: model call 2
+  M-->>R: call load_skill(governed-sql)
+  R->>T: load_skill
+  T-->>R: SKILL.md rules, and activates the skill
+  Note over R,T: skill metadata unlocks run_governed_sql
+  R->>M: model call 3, tools now include run_governed_sql
+  M-->>R: call run_governed_sql(SELECT ... LIMIT 5)
+  R->>G: inspect the SQL AST
+  alt allowed
+    G-->>R: ok
+    R->>D: run the query
+    D-->>R: rows + citation ids
+  else blocked (DDL, SELECT *, other table, masked column, unbounded)
+    G-->>R: {blocked: true, reason}
+    Note over R,D: the tool never runs
+  end
+  R->>M: next model call, until the cap
+  M-->>U: cited answer, or a partial answer at the cap

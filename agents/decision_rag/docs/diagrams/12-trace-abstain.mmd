@@ -1,0 +1,44 @@
+flowchart TD
+  n0(["Query: what is the airspeed of a swallow<br/>3 joint judgments, 3 stages"])
+  n1["Messaging<br/>topic · p=0.00"]
+  n2["Retrieval<br/>topic · p=0.00"]
+  n3["Agents<br/>topic · p=0.00"]
+  n4["Kafka consumer groups<br/>document · p=0.00"]
+  n5["Azure Event Hubs<br/>document · p=0.00"]
+  n6["Dead-letter queues<br/>document · p=0.00"]
+  n7["Hybrid retrieval<br/>document · p=0.00"]
+  n8["Chunking strategies<br/>document · p=0.00"]
+  n9["GraphRAG<br/>document · p=0.00"]
+  n10["A consumer group splits a topics part…<br/>passage · rank 1 · p=0.00"]
+  n11["Adding consumers beyond the number of…<br/>passage · rank 2 · p=0.00"]
+  n12["A consumer commits the offset of the …<br/>passage · rank 3 · p=0.00"]
+  n13["Event Hubs exposes a Kafka endpoint o…<br/>passage · p=0.00"]
+  n14["Each Kafka topic maps to an event hub…<br/>passage · p=0.00"]
+  n15["Event Hubs Capture writes streaming e…<br/>passage · p=0.00"]
+  n16["Send a message to the dead-letter top…<br/>passage · p=0.00"]
+  n17["Store the failure reason and attempt …<br/>passage · p=0.00"]
+  n0 --> n1
+  n0 --> n2
+  n0 -.-> n3
+  n1 --> n4
+  n1 --> n5
+  n1 --> n6
+  n2 -.-> n7
+  n2 -.-> n8
+  n2 -.-> n9
+  n4 --> n10
+  n4 --> n11
+  n4 --> n12
+  n5 -.-> n13
+  n5 -.-> n14
+  n5 -.-> n15
+  n6 -.-> n16
+  n6 -.-> n17
+  classDef kept fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef pruned fill:#eeeeee,stroke:#9e9e9e,color:#555
+  classDef answer fill:#fff3c4,stroke:#b8860b,stroke-width:3px,color:#000
+  classDef root fill:#dbe8ff,stroke:#2f5fb3,color:#000
+  class n0 root
+  class n1,n2,n4,n5,n6 kept
+  class n3,n7,n8,n9,n13,n14,n15,n16,n17 pruned
+  class n10,n11,n12 answer

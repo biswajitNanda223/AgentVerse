@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentverse-declarative-agent"
+version = "0.1.0"
+description = "Declarative ADK agent: the agent is a YAML file, behaviour lives in SKILL.md skills, guardrails are code callbacks"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = {text = "Apache-2.0"}
+dependencies = [
+  "agentverse",
+  "sqlglot>=27,<30",
+]
+
+[tool.uv.sources]
+agentverse = {workspace = true}
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/declarative_agent"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

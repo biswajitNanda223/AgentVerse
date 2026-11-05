@@ -26,6 +26,10 @@ together.
 | Compare chunking strategies | [Chunking examples](examples/chunking/README.md) |
 | Understand architecture and boundaries | [Architecture guide](docs/architecture.md) |
 | Make agents fast, secure and scalable | [Production guide](docs/production-guide.md) |
+| Define an agent as a YAML file with SKILL.md skills that unlock tools, plus code-enforced guardrails | [Declarative agent and skills](agents/declarative_agent/README.md) |
+| Retrieve by navigating a corpus hierarchy with a decision model (DecisionRAG paper), with Claude and Jev backends, PDF input and sample data | [DecisionRAG](agents/decision_rag/README.md) |
+| See the ADK agent end to end for the Project SLM scenarios, plus Agent Engine advantages and risks | [Project SLM architecture](docs/project-slm/README.md) |
+| Build with a System One model (TypeSafe Jev): typed fast decisions routing to an agent | [System One triage](agents/system_one_triage/README.md) |
 | Run an unattended agent on Kafka / Azure Event Hubs with Azure Blob results | [Event worker](agents/event_worker/README.md) |
 | Build a security-first agent with rollback, memory and evals | [Production AI security solution](agents/production_security/README.md) |
 | Use ADK, MCP, A2A and Agents CLI | [Agents and protocols](docs/agents-and-protocols.md) |
@@ -51,6 +55,12 @@ together.
   adversarial and trajectory evaluations, threat modeling and incident operations.
 - **Event-driven agents:** Kafka / Azure Event Hubs consumer as a background service with
   idempotent Azure Blob results, retries, dead-letter topic and commit-after-handle delivery.
+- **System One models:** typed, calibrated fast decisions (choice, score, probability) from
+  TypeSafe Jev routing work in plain code, with System Two escalation and fail-safe fallback.
+- **Decision-model retrieval:** DecisionRAG navigates topic > document > section > passage with
+  joint decision-model judgments (one call per level), traces and abstention, instead of an index.
+- **Declarative agents and skills:** an agent defined in YAML, SKILL.md skills loaded on demand that
+  gate which tools exist, and code-enforced guardrails (model-call cap, SQL AST check).
 - **Operations:** OpenTelemetry, golden evaluations, load testing, CI, Docker Compose,
   Kubernetes security contexts, HPA and PodDisruptionBudget.
 
@@ -158,7 +168,10 @@ AgentVerse/                       uv workspace root (pyproject.toml + single uv.
 ├── agents/                       one deployable ADK agent per workspace member
 │   ├── agentic_rag/              complete prompt-to-user vertical solution
 │   ├── production_security/      security-first agent, memory, cache, evals and runbooks
-│   └── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
+│   ├── event_worker/             Kafka / Event Hubs consumer, Azure Blob results, background service
+│   ├── system_one_triage/        System One (Jev) typed decisions routing tickets to an ADK agent
+│   ├── decision_rag/             DecisionRAG: navigate topic > document > section > passage with a decision model
+│   └── declarative_agent/        YAML-defined ADK agent, SKILL.md skills that gate tools, guardrail callbacks
 ├── examples/                     runnable RAG, chunking and production patterns
 ├── docs/                         architecture and operational guides
 ├── deploy/                       shared Compose, OTel and Kubernetes assets
@@ -177,6 +190,15 @@ flowchart LR
   Root --> EW["agents/event_worker"]
   EW -->|"workspace dependency"| Lib
   EW --> Img3["Docker image + Cloud Run<br/>Kafka in, Azure Blob out"]
+  Root --> ST["agents/system_one_triage"]
+  ST -->|"workspace dependency"| Lib
+  ST --> Img4["Docker image + Cloud Run<br/>System One router + ADK agent"]
+  Root --> DR["agents/decision_rag"]
+  DR -->|"workspace dependency"| Lib
+  DR --> Img5["Docker image + Cloud Run<br/>navigation API + ADK agent"]
+  Root --> DA["agents/declarative_agent"]
+  DA -->|"workspace dependency"| Lib
+  DA --> Img6["Docker image + Cloud Run<br/>YAML agent served by ADK"]
   Sec --> Img2["Docker image + Cloud Run<br/>agents-cli manifest"]
   Lib --> Img0["Docker image<br/>standalone API"]
 ```
@@ -210,11 +232,14 @@ release. See the [production guide](docs/production-guide.md) for the complete c
 
 | Task | How |
 |---|---|
-| Add an agent | Create `agents/<name>/` with `pyproject.toml` (`agentverse = {workspace = true}`), `src/<name>/`, tests, `agents-cli-manifest.yaml`, `Dockerfile`; add it to `[tool.mypy] packages` and `[tool.ruff.lint.isort] known-first-party` in the root `pyproject.toml`, the Makefile coverage flags and the CI image matrix; run `uv lock` |
+| Add an agent | `python3 scripts/new_agent.py <name> "<description>"` scaffolds `agents/<name>/` and registers it in the root `pyproject.toml`, Makefile and CI; then `uv lock`, replace the placeholders and run `make check` (or ask Claude Code: the `add-agent` skill does this) |
 | Change a dependency | Edit the member's `pyproject.toml`, run `uv lock`, commit `uv.lock` (Docker builds use `--frozen`) |
 | Upgrade ADK, A2A or MCP | Bump the pin in `packages/agentverse/pyproject.toml`, update the baseline note and badge above, then run `make check` and the evals before merging |
 | Edit docs or diagrams | Keep relative links valid (`make docs` checks them); Mermaid blocks must render on GitHub |
 | Release an image | CI builds `packages/agentverse`, `agents/agentic_rag` and `agents/production_security` images from the repo root |
+
+Claude Code project skills live in `.claude/skills/`: `add-agent` (scaffold an agent), `check`
+(run the quality gate) and `steward` (conventions for driving PRs to green).
 
 ## Contributing and security
 

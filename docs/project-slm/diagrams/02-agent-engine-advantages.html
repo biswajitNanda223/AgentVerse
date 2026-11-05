@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>ADK Agent Engine: advantages and what to validate</title>
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; background:#f4f6f9; color:#1b1f24; font:15px/1.4 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  #poster { width:2000px; padding:34px 40px 28px; }
+  h1 { margin:0; font-size:32px; letter-spacing:-.3px; } .sub { color:#55606e; margin:6px 0 22px; font-size:16px; }
+  .cols { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+  .col { border-radius:14px; border:1.6px solid; background:#fff; overflow:hidden; }
+  .hd { padding:14px 18px; color:#fff; font-weight:700; font-size:19px; } .hd small { display:block; font-weight:500; font-size:13.5px; opacity:.93; margin-top:3px; }
+  .good { border-color:#2e7d32 } .good .hd { background:#2e7d32 } .warn { border-color:#b3541e } .warn .hd { background:#b3541e }
+  .row { display:grid; grid-template-columns:1fr; gap:3px; padding:12px 18px; border-top:1px solid #e3e7ee; }
+  .row b { font-size:16px; } .row span { color:#2c3540; font-size:14px; } .row em { font-style:normal; font-size:12.5px; font-weight:700; }
+  .row .tag, .tag { color:#fff !important; display:inline-block; font-size:11.5px; font-weight:700; padding:2px 8px; border-radius:20px; margin-right:6px; color:#fff; vertical-align:1px; }
+  .v { background:#2e7d32 } .g { background:#6b7686 } .x { background:#b3541e }
+  .ids { color:#2e7d32; font-weight:700; font-size:12.5px; } .warn .ids { color:#b3541e; }
+  .poc { margin-top:22px; border-radius:14px; border:1.6px solid #6a4fb3; background:#fff; }
+  .poc .hd { background:#6a4fb3; } .poc .row b { font-size:15.5px; }
+  .grid3 { display:grid; grid-template-columns:repeat(3,1fr); }
+  .grid3 .row { border-left:1px solid #e3e7ee; } .grid3 .row:first-child { border-left:none; }
+  .foot { margin-top:16px; color:#3a4654; font-size:13.5px; }
+</style></head><body><div id="poster">
+<h1>Deploying the ADK agent on ADK Agent Engine</h1>
+<div class="sub">What a managed runtime gives Project SLM, and what to prove before committing. Tags: <span class="tag v">checked in Google docs search</span> <span class="tag g">general knowledge, confirm</span> <span class="tag x">not found, must test</span></div>
+
+<div class="cols">
+<div class="col good"><div class="hd">Advantages (what you get)<small>mapped to the supplied scenarios</small></div>
+  <div class="row"><b><span class="tag v">checked</span>No cluster to run for the agent tier</b><span>Agent Engine (now described as Agent Runtime in newer Google pages) hosts and runs the ADK agent; you ship the agent rather than operate the cluster it runs on.</span><span class="ids">[SCL-02] [SCL-07]</span></div>
+  <div class="row"><b><span class="tag v">checked</span>Managed sessions: any instance can serve any turn</b><span>VertexAiSessionService keeps conversation state outside the container, so turn 2 can run on a different instance after scale-out or a restart. This is the exact scenario text.</span><span class="ids">[SCL-03]</span></div>
+  <div class="row"><b><span class="tag v">checked</span>Managed long-term memory</b><span>On Agent Engine, the ADK template uses VertexAiMemoryBankService by default, which fits cross-session executive memory without building your own store.</span><span class="ids">[ADK-04]</span></div>
+  <div class="row"><b><span class="tag v">checked</span>Enterprise perimeter support</b><span>Google's security table lists VPC Service Controls as supported for Agent Runtime, Sessions and Memory Bank (a year-old table; recheck).</span><span class="ids">[GOV-02] [GOV-03]</span></div>
+  <div class="row"><b><span class="tag v">checked</span>Pay for use, with a small free monthly allowance</b><span>Third-party summaries put compute near $0.085 per vCPU-hour and $0.009 per GiB-hour; allowance figures conflict between sources. Good for a POC that is idle most of the week and bursts on Monday.</span><span class="ids">[SCL-01] [TEL-02]</span></div>
+  <div class="row"><b><span class="tag g">confirm</span>Built-in logging and tracing, IAM, versioned deploys</b><span>Expected from Google Cloud integration (Cloud Logging and Trace, IAM service accounts, redeploy a new agent version). Confirm each against current docs; use OpenTelemetry spans so traces also reach MLflow.</span><span class="ids">[TEL-01] [ADK-08]</span></div>
+  <div class="row"><b><span class="tag g">confirm</span>Claude and Gemini both reachable from GCP</b><span>ADK-06 already lists Gemini 2.5 Pro and Claude. Anthropic documents Claude on Google Vertex AI, so one cloud, one bill and one network for the model layer; failover between models stays in your model router.</span><span class="ids">[ADK-06]</span></div>
+</div>
+
+<div class="col warn"><div class="hd">Must validate before you commit<small>risks against your scenarios; I could not find these in the sources</small></div>
+  <div class="row"><b><span class="tag x">test</span>Request timeout vs 60 to 180 s deep queries</b><span>No timeout figure for Agent Engine requests surfaced. If streaming is not long-lived enough, UX-03 breaks regardless of your own proxies. Test a 180 s streamed run end to end.</span><span class="ids">[UX-03] [UX-02] [UX-09]</span></div>
+  <div class="row"><b><span class="tag x">test</span>Session and event quotas vs the 100-user burst</b><span>Google's quotas page lists 100 session writes and 300 event appends per minute; another page shows lower defaults (10 and 30). A burst of 2,500+ LLM calls, each producing session events, may exceed these. Request increases and load-test.</span><span class="ids">[SCL-01] [SCL-03]</span></div>
+  <div class="row"><b><span class="tag x">test</span>Scale-out to 10 to 30 replicas and warm minimums</b><span>No autoscaling limits or minimum-instance setting surfaced. Confirm you can hold at least 2 warm instances at 8:55 AM and burst to 30.</span><span class="ids">[SCL-02] [SCL-07]</span></div>
+  <div class="row"><b><span class="tag x">test</span>Streaming sub-agent progress to the browser</b><span>Confirm the runtime can stream ADK events per hop to your gateway, which then relays SSE to React without buffering.</span><span class="ids">[ADK-01] [UX-02]</span></div>
+  <div class="row"><b><span class="tag x">test</span>Cross-cloud path to Databricks on Azure</b><span>Agent on GCP, data on Azure (centralindia, southindia). Prove private connectivity and that joins push down so rows never cross clouds. Also the Entra claims must reach SQL.</span><span class="ids">[GOV-07] [GOV-03] [BKD-08]</span></div>
+  <div class="row"><b><span class="tag x">test</span>Cancellation and callbacks behave as designed</b><span>Verify Stop terminates the running task and cancels downstream SQL, and that before_model / before_tool callbacks run inside the managed runtime.</span><span class="ids">[ADK-03] [ADK-02] [ADK-07]</span></div>
+  <div class="row"><b><span class="tag x">test</span>Private-network egress to SAP BTP, P6, Graph</b><span>On-prem and private-cloud connectors need a private route from the managed runtime.</span><span class="ids">[BKD-08]</span></div>
+</div></div>
+
+<div class="poc"><div class="hd">POC model cost: "Gemini Enterprise gives zero LLM cost for the ADK agent brain"<small>Not supported by what I found. Treat it as unverified until Google confirms it for your contract.</small></div>
+  <div class="grid3">
+    <div class="row"><b><span class="tag x">not confirmed</span>What the seat covers</b><span>Sources describe a Gemini Enterprise seat as covering the packaged experience (search, chat, pre-built agents, agent builder). Custom agents built with ADK on the underlying platform are described as billed separately by usage, including model tokens.</span></div>
+    <div class="row"><b><span class="tag g">options</span>Ways to run a POC cheaply</b><span>Check free-tier or promotional model rates and new-account credits on the model you pick, keep prompts short, use the max_llm_calls=45 breaker [ADK-02], and run the offline stand-in for logic tests. Compare real token use against the 160M tokens a month planning figure [TEL-02].</span></div>
+    <div class="row"><b><span class="tag g">action</span>What to ask Google</b><span>"Does our Gemini Enterprise entitlement include model inference or Agent Engine compute for custom ADK agents, and at what quota?" Get it in writing before you plan the budget around zero.</span></div>
+  </div></div>
+<div class="foot">Sources: Google Cloud documentation pages for Agent Runtime sessions, Memory Bank and quotas, and third-party pricing guides, as returned by web search on the day this was written. Names and numbers change quickly; re-verify before relying on them.</div>
+</div></body></html>

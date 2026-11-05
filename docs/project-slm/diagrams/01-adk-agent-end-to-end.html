@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Project SLM: ADK agent end to end</title>
+<style>
+  :root { --ink:#1b1f24; --mut:#55606e; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:#f4f6f9; color:var(--ink); font:15px/1.35 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; }
+  #poster { width:2200px; padding:34px 40px 30px; }
+  h1 { margin:0; font-size:34px; letter-spacing:-.3px; }
+  .sub { color:var(--mut); margin:6px 0 22px; font-size:16px; }
+  .band { display:grid; grid-template-columns:200px 1fr; border-radius:12px; overflow:hidden; border:1.5px solid; margin:0; }
+  .lab { padding:14px 16px; font-weight:700; font-size:17px; line-height:1.25; color:#fff; display:flex; flex-direction:column; justify-content:center; }
+  .lab small { font-weight:500; font-size:13px; opacity:.92; margin-top:5px; }
+  .body { padding:14px; display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; background:#fff; }
+  .c { flex:1 1 300px; min-width:300px; border-radius:9px; padding:9px 12px; border:1.3px solid; background:var(--bg); border-color:var(--bd); }
+  .c b { display:block; font-size:15px; margin-bottom:2px; }
+  .c span { display:block; color:#2c3540; font-size:13.5px; }
+  .c i { display:block; font-style:normal; font-weight:700; font-size:12.5px; margin-top:4px; color:var(--bd); }
+  .fe { --bg:#e6efff; --bd:#2f5fb3; } .be { --bg:#efe9fb; --bd:#6a4fb3; } .ag { --bg:#e3f5e8; --bd:#2e7d32; }
+  .gd { --bg:#fde7e7; --bd:#c0392b; } .dt { --bg:#fff0d9; --bd:#c77c0e; } .en { --bg:#fff8cf; --bd:#a97b00; }
+  .ob { --bg:#e2f3f0; --bd:#00796b; } .opt { --bg:#fff; --bd:#8a94a3; border-style:dashed; }
+  .band.fe-b { border-color:#2f5fb3 } .fe-b .lab { background:#2f5fb3 }
+  .band.be-b { border-color:#6a4fb3 } .be-b .lab { background:#6a4fb3 }
+  .band.ag-b { border-color:#2e7d32; box-shadow:0 0 0 3px #bfe3c8 } .ag-b .lab { background:#2e7d32 }
+  .band.dt-b { border-color:#c77c0e } .dt-b .lab { background:#c77c0e }
+  .band.en-b { border-color:#a97b00 } .en-b .lab { background:#a97b00 }
+  .band.ob-b { border-color:#00796b } .ob-b .lab { background:#00796b }
+  .flow { display:flex; align-items:center; justify-content:center; height:46px; color:#34404f; font-weight:600; font-size:14.5px; gap:10px; }
+  .flow:before, .flow:after { content:""; }
+  .arrow { font-size:26px; line-height:1; color:#34404f; }
+  .chain { width:100%; display:flex; align-items:center; gap:8px; flex-wrap:nowrap; margin-bottom:2px; }
+  .chip { flex:1; text-align:center; border:1.6px solid #2e7d32; background:#e3f5e8; border-radius:10px; padding:10px 6px; font-weight:700; }
+  .chip small { display:block; font-weight:500; color:#2c3540; font-size:12.5px; }
+  .chain .arrow { flex:0 0 auto; }
+  .sec { width:100%; font-weight:700; font-size:13px; letter-spacing:.8px; text-transform:uppercase; color:#44505e; margin:6px 2px 0; }
+  .agrid { width:100%; display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .agrid > div { display:flex; flex-wrap:wrap; gap:10px; align-content:flex-start; }
+  .agrid .c { flex:1 1 240px; min-width:240px; }
+  .twocol { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .note { margin-top:16px; padding:12px 16px; background:#fff; border:1.2px solid #c9d1dc; border-radius:10px; color:#3a4654; font-size:14px; }
+  .legend { display:flex; gap:18px; flex-wrap:wrap; margin-top:10px; font-size:13.5px; color:#3a4654; }
+  .legend span:before { content:""; display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px; background:var(--k); border:1.2px solid var(--b); }
+</style></head><body><div id="poster">
+<h1>Project SLM &middot; ADK agent, end to end</h1>
+<div class="sub">One chat question to a governed, cited answer, and how every layer behaves under the Monday 100-user burst [SCL-01]. Scenario IDs in [brackets] come from the supplied requirement list (Domains 1 to 7).</div>
+
+<div class="flow"><span>Executives, BU Heads, Planners, Site Heads</span><span class="arrow">&darr;</span><span>HTTPS &middot; SSE streaming, no proxy buffering</span></div>
+
+<div class="band fe-b"><div class="lab">1 &middot; Frontend<small>slm.adani.com, Entra ID SSO [UX-07]</small></div><div class="body">
+  <div class="c fe"><b>Dashboard KPI cards</b><span>Capex, schedule adherence; BU filter loads in under 2 s from an operational cache, never waits on the agent</span><i>[UX-01]</i></div>
+  <div class="c fe"><b>Split chat + Evidence Panel</b><span>Streams each sub-agent's progress badge and fills the panel with citations as the answer forms</span><i>[UX-02] [ADK-01]</i></div>
+  <div class="c fe"><b>Source deep links</b><span>Citation click opens a page preview or record drawer in under 2 s via short-lived signed URLs</span><i>[UX-05]</i></div>
+  <div class="c fe"><b>Knowledge graph drill-down</b><span>Node expansion under 1 s from pre-indexed dependency edges, synced with chat</span><i>[UX-04]</i></div>
+  <div class="c fe"><b>Stop generating</b><span>Cancels the running ADK task and downstream LLM / SQL calls</span><i>[ADK-03]</i></div>
+  <div class="c fe"><b>Reconnect, pin, notify</b><span>Resume the in-flight answer by session_id; pin two options side by side and export; toast when a long audit finishes</span><i>[UX-06] [UX-08] [UX-09]</i></div>
+</div></div>
+
+<div class="flow"><span class="arrow">&darr;</span><span>request + Entra claims + session_id</span></div>
+
+<div class="band be-b"><div class="lab">2 &middot; Backend gateway<small>FastAPI, async; 60 to 180 s queries must never be cut by a proxy [UX-03]</small></div><div class="body">
+  <div class="c be"><b>Claims preserved end to end</b><span>BU_Code, Assigned_Projects, DoA_Level, Department survive the hop into the agent and the SQL session</span><i>[GOV-03]</i></div>
+  <div class="c be"><b>Per-user rate limit + cost breaker</b><span>5,000 rapid queries from one user is cut off before the BU's token budget is spent</span><i>[TEL-07]</i></div>
+  <div class="c be"><b>Upload service</b><span>Files over 10 MB go straight to storage: a 35 MB EPC contract is not rejected with a 413</span><i>[VEC-01]</i></div>
+  <div class="c be"><b>OLTP store</b><span>Lakebase / Cloud SQL / Azure Postgres for chat, bookmarks, alert acks, write-back state machines, under 10 ms; PgBouncer pooling</span><i>[BKD-07] [SCL-04]</i></div>
+  <div class="c be"><b>Priority token queue</b><span>Interactive executive turns outrank background indexing and alert scans, so batch work never causes a 429 for live users</span><i>[SCL-06]</i></div>
+</div></div>
+
+<div class="flow"><span class="arrow">&darr;</span><span>claims + session_id into the agent tier</span></div>
+
+<div class="band ag-b"><div class="lab">3 &middot; ADK agent tier<small>Deployed on ADK Agent Engine; scales independently of frontend and backend [SCL-02]</small></div><div class="body">
+  <div class="sec">Sub-agent chain, one progress event per hop [ADK-01]</div>
+  <div class="chain">
+    <div class="chip">Supervisor</div><span class="arrow">&rarr;</span>
+    <div class="chip">Orchestrator</div><span class="arrow">&rarr;</span>
+    <div class="chip">Dispatcher</div><span class="arrow">&rarr;</span>
+    <div class="chip">Selector<small>Object_Selector</small></div><span class="arrow">&rarr;</span>
+    <div class="chip">Planner<small>Query_Planner</small></div><span class="arrow">&rarr;</span>
+    <div class="chip">Synthesizer<small>+ Evidence_Builder</small></div>
+  </div>
+  <div class="sec">Deterministic guardrails: code, not prompts</div>
+  <div class="agrid"><div>
+    <div class="c gd"><b>before_model_callback</b><span>Hard circuit breaker at max_llm_calls=45; returns a partial grounded synthesis instead of timing out or burning tokens</span><i>[ADK-02]</i></div>
+    <div class="c gd"><b>before_tool_callback</b><span>Inspects the SQL AST before it runs: no raw table scans, unauthorized cross-BU joins, DDL or DML</span><i>[ADK-07]</i></div>
+  </div><div>
+    <div class="c gd"><b>Refuse raw dumps, serve evidence</b><span>"All rows of the PO table" or prompt injection is refused; curated record-level citations still appear in the Evidence Panel</span><i>[GOV-01]</i></div>
+    <div class="c gd"><b>Human approval gate</b><span>Writes are staged as a draft payload and paused until an authorized human clicks Approve</span><i>[BKD-01]</i></div>
+  </div></div>
+  <div class="sec">ADK services and model layer</div>
+  <div class="c ag"><b>SessionService</b><span>Shared state (Database / VertexAi session service): turn 2 runs on any pod without losing turn 1</span><i>[SCL-03]</i></div>
+  <div class="c ag"><b>MemoryService</b><span>A BU Head returning on Wednesday keeps role, project focus and action items from Monday</span><i>[ADK-04]</i></div>
+  <div class="c ag"><b>ArtifactService</b><span>What-if runs v1, v2, v3 stored as versioned artifacts, never overwritten</span><i>[ADK-05]</i></div>
+  <div class="c ag"><b>Model router + failover</b><span>Gemini 2.5 Pro / Claude / GPT-4o with automatic fallback to another region or model without dropping the turn</span><i>[ADK-06]</i></div>
+  <div class="c ag"><b>A2A client</b><span>Calls a future standalone Finance or Procurement agent without rewriting the platform</span><i>[ADK-09]</i></div>
+  <div class="c ag"><b>Semantic YAML hot reload</b><span>prism_semantic_layer fixes (KPI formula, glossary synonym) live in minutes, no 20-minute rebuild</span><i>[ADK-10]</i></div>
+  <div class="c ag"><b>Async everywhere</b><span>Every LLM call, SQL run and Vector Search lookup is async or offloaded, so one 20 s query never blocks 15 other users</span><i>[SCL-08]</i></div>
+  <div class="c ag"><b>Warm capacity</b><span>At least 2 pre-warmed replicas before 8:55 AM, avoiding a 25 s cold start; burst scale-out to 10 to 30 replicas</span><i>[SCL-07] [SCL-02]</i></div>
+  <div class="c ag"><b>Uploads + live data in one turn</b><span>Compares a vendor delay-claim PDF against site logs and the P6 schedule by querying runtime vectors and SQL together</span><i>[VEC-04]</i></div>
+  <div class="c opt"><b>Optional: DecisionRAG navigator</b><span>Example in this repo, not in the requirement list: the Selector could navigate a hierarchy of semantic objects with a decision model instead of an index</span><i>idea only</i></div>
+</div></div>
+
+<div class="flow"><span class="arrow">&darr;</span><span>only AST-checked SQL, entitlement-filtered retrieval</span><span style="width:60px"></span><span class="arrow">&darr;</span><span>proposed writes, approved by a human</span></div>
+
+<div class="twocol">
+<div class="band dt-b" style="grid-template-columns:150px 1fr"><div class="lab">4 &middot; Data plane<small>zero-copy, governed [GOV-09]</small></div><div class="body">
+  <div class="c dt" style="min-width:230px"><b>Databricks SQL Warehouse</b><span>Multi-cluster autoscale and result cache serve repeat portfolio questions in under 500 ms; heavy joins pushed down so rows never cross clouds</span><i>[SCL-05] [GOV-07]</i></div>
+  <div class="c dt" style="min-width:230px"><b>Unity Catalog</b><span>Row filters, column masks and semantic views enforce BU, project and function; unit prices and margins masked for engineers</span><i>[GOV-02] [GOV-05]</i></div>
+  <div class="c dt" style="min-width:230px"><b>23 BU Delta Shares</b><span>Cross-BU rollups for executives, single-site scope for engineers; a stale share is excluded with a banner</span><i>[GOV-04] [GOV-06]</i></div>
+  <div class="c dt" style="min-width:230px"><b>Vector Search (permanent)</b><span>ACC and SharePoint documents obey the same entitlements as the SQL rows</span><i>[GOV-08]</i></div>
+  <div class="c dt" style="min-width:230px"><b>Runtime upload vectors</b><span>Searchable in under 5 s, isolated to user_id + session_id, purged after 24 to 72 h</span><i>[VEC-02] [VEC-03] [VEC-07]</i></div>
+  <div class="c dt" style="min-width:230px"><b>Parse / OCR workers</b><span>Heavy PDFs run in isolated pods and keep table structure; verified uploads can be promoted to governed Volumes with audit metadata</span><i>[VEC-08] [VEC-05] [VEC-06]</i></div>
+</div></div>
+<div class="band en-b" style="grid-template-columns:150px 1fr"><div class="lab">5 &middot; Actions + background<small>enterprise systems</small></div><div class="body">
+  <div class="c en" style="min-width:230px"><b>Durable write-back state</b><span>Survives hours or days and restarts while the BU Head approves under DoA; idempotency keys stop duplicate PRs and NCRs</span><i>[BKD-02] [BKD-04]</i></div>
+  <div class="c en" style="min-width:230px"><b>Immutable audit table</b><span>Requester, approver, time, agent reasoning, exact old and new value, written atomically</span><i>[BKD-03]</i></div>
+  <div class="c en" style="min-width:230px"><b>Connector hub</b><span>SAP BTP, Oracle Primavera P6, Clapia, Teams and Outlook through private hybrid connectivity</span><i>[BKD-08]</i></div>
+  <div class="c en" style="min-width:230px"><b>Proactive workers</b><span>Event alerts (milestone slip over 7 days, safety NCR) and the Monday 8:00 AM PMO pack run the agent headless</span><i>[BKD-05] [BKD-06]</i></div>
+</div></div>
+</div>
+
+<div class="flow"><span class="arrow">&darr;</span><span>spans, tokens, outcomes from every layer</span></div>
+
+<div class="band ob-b"><div class="lab">6 &middot; Observability, FinOps, release safety<small>AC-12</small></div><div class="body">
+  <div class="c ob"><b>One trace per conversation_id</b><span>React request, all agent spans, the compiled SQL and the warehouse query profile in one view within 5 minutes</span><i>[TEL-01]</i></div>
+  <div class="c ob"><b>Redacted telemetry</b><span>Commercial bid values and safety incident details masked in OpenTelemetry / MLflow spans</span><i>[TEL-05]</i></div>
+  <div class="c ob"><b>Chargeback</b><span>Monthly LLM tokens, Vector Search queries and SQL DBUs per BU, project and role (160M tokens a month)</span><i>[TEL-02]</i></div>
+  <div class="c ob"><b>Quality alerts</b><span>LLM-as-judge flags numbers not found in Evidence_Builder output, alerting above 5 percent</span><i>[TEL-04]</i></div>
+  <div class="c ob"><b>Bottlenecks + failures</b><span>Selector reasoning vs SQL vs cold start against the 60 s P95; SQL compile failures per semantic object</span><i>[TEL-03] [TEL-08]</i></div>
+  <div class="c ob"><b>Replay + regression</b><span>Thumbs-down captures session, YAML version and tool outputs; adk eval golden trajectories gate CI at 95 percent</span><i>[TEL-06] [ADK-08]</i></div>
+</div></div>
+
+<div class="note"><b>Reading the diagram.</b> Green is the agent tier you deploy; red items are deterministic code that enforces policy regardless of what the model says; the dashed card is an idea from this repo, not a requirement. All 60 scenarios from Domains 1 to 7 appear above. Domain 8 was cut off in the supplied text and is not shown.</div>
+<div class="legend">
+  <span style="--k:#e6efff;--b:#2f5fb3">Frontend</span><span style="--k:#efe9fb;--b:#6a4fb3">Backend</span><span style="--k:#e3f5e8;--b:#2e7d32">ADK agent tier</span><span style="--k:#fde7e7;--b:#c0392b">Guardrails</span><span style="--k:#fff0d9;--b:#c77c0e">Data plane</span><span style="--k:#fff8cf;--b:#a97b00">Actions</span><span style="--k:#e2f3f0;--b:#00796b">Observability</span>
+</div>
+</div></body></html>

@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentverse-system-one-triage"
+version = "0.1.0"
+description = "System One (Jev) triage: typed, calibrated fast decisions route each ticket to auto-handling or an ADK agent"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = {text = "Apache-2.0"}
+dependencies = ["agentverse"]
+
+[tool.uv.sources]
+agentverse = {workspace = true}
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/system_one_triage"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

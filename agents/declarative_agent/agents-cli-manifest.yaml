@@ -1,0 +1,8 @@
+name: agentverse-declarative-agent
+description: Declarative ADK agent: the agent is a YAML file, behaviour lives in SKILL.md skills, guardrails are code callbacks
+language: python
+agent:
+  module: declarative_agent.adk_agent
+  variable: root_agent
+deployment:
+  target: cloud_run

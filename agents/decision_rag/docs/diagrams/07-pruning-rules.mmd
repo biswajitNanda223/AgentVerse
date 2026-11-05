@@ -1,0 +1,20 @@
+flowchart TD
+  Start["Stage candidates judged: P(yes) for each"] --> Floor{"optional floor set<br/>and nobody reaches it?"}
+  Floor -->|"yes: no signal"| Widen["WIDEN: keep the top few anyway<br/>do not commit to one arbitrary branch"]
+  Floor -->|"no"| Top["keep the top k documents<br/>(top r passages at the last stage)"]
+  Widen --> Next
+  Top --> Next{"stage was passages?"}
+  Next -->|"no"| Down["expand ONLY the kept branches<br/>pruned ones are never scored"]
+  Next -->|"yes"| Rerank{"choice reranking on?"}
+  Rerank -->|"yes"| Choose["one multiple-choice question over the r passages<br/>order by choice probability"]
+  Rerank -->|"no"| Order["order by passage P(yes)"]
+  Choose --> Abst
+  Order --> Abst{"best passage P(yes) < abstain_below?"}
+  Abst -->|"yes"| No["abstain: no answer from weak evidence"]
+  Abst -->|"no"| Yes["return passages with citations"]
+  classDef ok fill:#d7f0dd,stroke:#2e7d32,color:#000
+  classDef bad fill:#fde2e2,stroke:#c0392b,color:#000
+  classDef mid fill:#fff3c4,stroke:#b8860b,color:#000
+  class Yes,Top ok
+  class No bad
+  class Widen,Choose mid
